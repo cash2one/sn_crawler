@@ -3,7 +3,7 @@ import sys
 import mechanize
 
 uri = "https://plus.google.com/110356488025922357921/about"
-uri = sys.argv[1]
+# uri = sys.argv[1]
 
 request = mechanize.Request(uri)
 response = mechanize.urlopen(request)

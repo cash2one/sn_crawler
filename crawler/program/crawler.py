@@ -123,11 +123,29 @@ def crawlGooglePlus(uid):
 	print(linkDict)
 
 
-def crawlTwitter(uid):
+def crawlTwitter(uid="tmp"):
 	print("crawl twitter")
+	url = "https://twitter.com/"
+	html = urllib.urlopen(url).read()
+	print(html)
+	with open("twitter.html", 'w') as fo:
+		fo.write(html)
+	webdriver.DesiredCapabilities.PHANTOMJS['phantomjs.page.customHeaders.Accept-Language'] = 'en'
+	browser = webdriver.PhantomJS()
+	browser.get(url)
+	account = browser.find_element_by_class_name("email-input")
+	print(account)
+	account.send_keys("sychen1990@gmail.com")
+	pwd = browser.find_element_by_id("js-password-field")
+	print(pwd)
+	# pwd.send_keys("OUou09087358")
+	submit = browser.find_element_by_class_name("submit")
+	submit.click()
+
 
 
 if __name__ == "__main__":
 	# google plus id list
-	ids = ["106309407311701947463", "111867549117983525241", "109675028280981323746", "110356488025922357921", ]
-	crawlGooglePlus("110356488025922357921")
+	# ids = ["106309407311701947463", "111867549117983525241", "109675028280981323746", "110356488025922357921", ]
+	# crawlGooglePlus("110356488025922357921")
+	crawlTwitter()

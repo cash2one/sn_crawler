@@ -77,7 +77,9 @@ def clickGooglePlus():
 	# print(html)
 	browser.close()
 
-
+def loginTwitter():
+	url = "https://twitter.com/"
+	
 
 if __name__ == "__main__":
 	# loginGoogle()
