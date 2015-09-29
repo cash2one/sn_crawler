@@ -376,8 +376,11 @@ def getGoogleUserPosts(driver, urlPosts):
 			video = row.find("a", {"class":"kq ot-anchor"}).getText()
 		except:
 			video = " "
-		post = time + "\t" + text + "\t" + video
-		posts.append(post)
+		try:
+			post = time + "\t" + text + "\t" + video
+			posts.append(post)
+		except:
+			posts.append("")
 	print(posts)
 	return posts
 
