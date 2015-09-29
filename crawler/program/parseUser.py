@@ -163,9 +163,11 @@ def getGoogleUserProfile(soup):
 # Input: soup of about html
 # Output: [name, gender, birthday, other names]
 def parseGoogleProfileBasic(soup):
-	basics = [""]*4
+	basics = [""]*5
+	name = soup.find("div", {"class":"rna KXa Xia fn"}).getText()
+	basics[0] = name
 	# infoTitles = ["性別","生日","感情狀態","其他名字"]
-	infoTitles = ["Gender", "Birthday", "Relationship", "Other names"]
+	infoTitles = ["Name","Gender", "Birthday", "Relationship", "Other names"]
 	infoModule = soup.find("div", {"class":"Ee e5a vna Hqc"})
 	try:
 		infoRows = infoModule.findAll("div", {"class": "wna"})
