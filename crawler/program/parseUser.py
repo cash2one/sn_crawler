@@ -18,8 +18,9 @@ import time
 # social network, friends no found
 
 
-snList = ["facebook", "twitter", "linkedin", "pinterest", "plus.google", "tumblr", "instagram", "VK", "flickr", "Vine", "youtube", "github"]
-pathData = "../data/"
+# snList = ["facebook", "twitter", "linkedin", "pinterest", "plus.google", "tumblr", "instagram", "VK", "flickr", "Vine", "youtube", "github"]
+snList = ["youtube", "facebook", "twitter", "linkedin", "flickr", "instagram", "tumblr", "github", "pinterest", "plus.google"]
+path = "../data/"
 # user = "111867549117983525241"
 user = "109675028280981323746"
 
@@ -41,10 +42,10 @@ def getGoogleUsers(sn = "google"):
 	loginGoogle(driver)
 
 	# init variable
-	snFolder = pathData+sn+"/"
-	ids = ut.readFileByLine(snFolder+"id_file")
-	allids = ut.readFileByLine(snFolder+"allid_file")
-	tmpids = ut.readFileByLine(snFolder+"tmpid_file")
+	snFolder = path+sn+"/"
+	ids = ut.readLine2List(snFolder, "id_file")
+	allids = ut.readLine2List(snFolder, "allid_file")
+	tmpids = ut.readLine2List(snFolder, "tmpid_file")
 	tmpids = [uid for uid in allids if uid not in ids]
 
 	# init parse list
@@ -66,14 +67,14 @@ def parseGoogleUser(driver, snFolder, uid, ids, allids, tmpids):
 	urlAbout = urlPrefix+uid+"/about"
 	urlPosts = urlPrefix+uid+"/posts"
 	# init file 
-	initFolder(snFolder)
-	id_writer = open(snFolder+"id_file", 'a')
-	allid_writer = open(snFolder+"allid_file", 'a')
-	id_record_writer = open(snFolder+"id_record_file", 'a')
+	ut.initFolder(snFolder)
+	id_writer = open(snFolder+"id_file", 'a', encoding="utf8")
+	allid_writer = open(snFolder+"allid_file", 'a', encoding="utf8")
+	id_record_writer = open(snFolder+"id_record_file", 'a', encoding="utf8")
 
-	sn_writer = open(snFolder+"sn_file", 'a')
-	profile_writer = open(snFolder+"profile_file", 'a')
-	rela_writer = open(snFolder+"relationship_file", 'a')
+	sn_writer = open(snFolder+"sn_file", 'a', encoding="utf8")
+	profile_writer = open(snFolder+"profile_file", 'a', encoding="utf8")
+	rela_writer = open(snFolder+"relationship_file", 'a', encoding="utf8")
 	# id
 	driver.get(urlAbout)
 	html = driver.page_source
@@ -115,6 +116,8 @@ def parseGoogleUser(driver, snFolder, uid, ids, allids, tmpids):
 
 		e = time.time()
 		print(uid+" spend time:"+str(e-s))
+	else:
+		id_writer.write(uid+"\n")
 
 def getGoogleUserSocialNetwork(soup):
 	sns = [""]*12
@@ -341,7 +344,7 @@ def getGoogleUserRelationship(driver):
 def writeGoogleUserWall(driver,snFolder, urlPosts, uid):
 	filePath = snFolder+"wall/"+uid
 	posts = getGoogleUserPosts(driver, urlPosts)
-	with open(filePath, 'w') as fo:
+	with open(filePath, 'w', encoding="utf8") as fo:
 		for post in posts:
 			fo.write(post+"\n")
 	return len(posts)
@@ -352,7 +355,7 @@ def getGoogleUserPosts(driver, urlPosts):
 	posts = list()
 	driver.get(urlPosts)
 	wait = WebDriverWait(driver, 10)
-	wait.until(ec.presence_of_element_located((By.CSS_SELECTOR, ".o-xc-Sya.tSa")))
+	wait.until(ec.presence_of_element_located((By.CSS_SELECTOR, "div.pga")))
 	count = 0
 	more_load = driver.find_element_by_css_selector("div.R4.b2.Xha")
 	while more_load.is_displayed() and count < 50:
@@ -371,7 +374,7 @@ def getGoogleUserPosts(driver, urlPosts):
 		except:
 			time = " "
 		try:
-			text = row.find("div", {"class":"Ct"}).getText()
+			text = row.find("div", {"class":"Ct"}).getText()[:-8]
 		except:
 			text = " "
 		try:
@@ -380,16 +383,12 @@ def getGoogleUserPosts(driver, urlPosts):
 			video = " "
 		post = time + "\t" + text + "\t" + video
 		posts.append(post)
-	print(posts)
+	print(len(posts))
 	return posts
 
 
 
-def initFolder(snFolder):
-	if not os.path.isdir(snFolder):
-		os.mkdir(snFolder)
-	if not os.path.isdir(snFolder+"wall"):
-		os.mkdir(snFolder+"wall")
+
 
 
 def loginGoogle(driver):
