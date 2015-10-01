@@ -10,20 +10,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 from bs4 import BeautifulSoup
 import time
 
-# to do list
-# 1. scroll down the friend window
-# 2. scroll down the posts wall
-# 3. write id, sns, profile, rela, wall to ids file
-# set language to english
-# social network, friends no found
-
-
 # snList = ["facebook", "twitter", "linkedin", "pinterest", "plus.google", "tumblr", "instagram", "VK", "flickr", "Vine", "youtube", "github"]
 snList = ["youtube", "facebook", "twitter", "linkedin", "flickr", "instagram", "tumblr", "github", "pinterest", "plus.google"]
 path = "../data/"
 # user = "111867549117983525241"
 user = "109675028280981323746"
-
 
 def getGoogleUsers(sn = "google"):
 

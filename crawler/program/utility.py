@@ -19,6 +19,7 @@ def readLine2List(path, fileName):
 	except:
 		return result
 
+
 def readCommaLine2List(path, fileName):
 	results = list()
 	try:
