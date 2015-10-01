@@ -85,7 +85,7 @@ def parseGoogleUser(driver, snFolder, uid, ids, allids, tmpids):
 	if infos != None:
 		friends, friend_bool = getGoogleUserRelationship(driver)
 		# posts
-		post_num = writeGoogleUserWall(driver, snFolder, urlPosts, uid)
+		# post_num = writeGoogleUserWall(driver, snFolder, urlPosts, uid)
 
 		# add id
 		ids.append(uid)
@@ -96,7 +96,7 @@ def parseGoogleUser(driver, snFolder, uid, ids, allids, tmpids):
 				tmpids.append(friend)
 		# write file
 		sn_writer.write(uid+','+','.join(sns)+'\n')
-		profile_writer.write(uid+','+','.join(infos)+'\n')
+		profile_writer.write(uid+',\t'+',\t'.join(infos)+'\n')
 		rela_writer.write(uid+' '+','.join(friends)+'\n')
 		id_writer.write(uid+"\n")
 		id_record_writer.write(uid)
@@ -106,13 +106,13 @@ def parseGoogleUser(driver, snFolder, uid, ids, allids, tmpids):
 		else:
 			id_record_writer.write(","+str(0))
 		if friend_bool:
-			id_record_writer.write(","+str(1))
-		else:
-			id_record_writer.write(","+str(0))
-		if post_num>0:
 			id_record_writer.write(","+str(1)+"\n")
 		else:
-			id_record_writer.write(","+str(0)+"\n")
+			id_record_writer.write(","+str(0)+'\n')
+		# if post_num>0:
+		# 	id_record_writer.write(","+str(1)+"\n")
+		# else:
+		# 	id_record_writer.write(","+str(0)+"\n")
 
 		e = time.time()
 		print(uid+" spend time:"+str(e-s))
@@ -120,7 +120,7 @@ def parseGoogleUser(driver, snFolder, uid, ids, allids, tmpids):
 		id_writer.write(uid+"\n")
 
 def getGoogleUserSocialNetwork(soup):
-	sns = [""]*12
+	sns = [""]*len(snList)
 	sn_bool = False
 	try:
 		linkModule = soup.find("div", {"class":"Ee g5a vna Yjb"})
@@ -203,7 +203,7 @@ def parseGoogleProfileEducation(soup):
 			eduInfo = row.findAll("div", {"class": "ija"})
 			# have department, time, description
 			if len(eduInfo) == 2:
-				desc = eduInfo[1].getText().strip()
+				desc = eduInfo[1].getText().strip().replace("\n", " ")
 			else:
 				desc = ""
 			department, eduFrom, eduTo = ut.parseTitleTime(eduInfo[0].getText())
@@ -251,7 +251,7 @@ def parseGoogleProfileWork(soup):
 					corp = row.find("div", {"class":"PLa"}).getText().strip()
 					employInfo = row.findAll("div", {"class":"ija"})
 					if len(employInfo) == 2:
-						description = employInfo[1].getText()
+						description = employInfo[1].getText().strip().replace("\n", " ").replace("\t", " ")
 					else:
 						description = ""
 					job, jobFrom, jobTo = ut.parseTitleTime(employInfo[0].getText())
@@ -277,14 +277,14 @@ def parseGoogleProfileLocation(soup):
 		placeRows = placeModule.findAll("div",{"class":"AAa"})
 		for row in placeRows:
 			time = row.find("div",{"class":"Cr"}).getText().strip()
-			place = row.find("div",{"class":"y4"}).getText().strip()
+			place = row.find("div",{"class":"y4"}).getText().strip().replace("\n"," ")
 			if time == placeTitles[0]:
-				places[0] = place
+				places[0] = place.strip()
 			else:
 				previousPlaces = place.split("-")
 				if len(previousPlaces) > 1:
-					places[1] = previousPlaces[-1].strip()
-					places[2] = previousPlaces[-2].strip()
+					places[1] = previousPlaces[-1].strip().replace("\n", " ")
+					places[2] = previousPlaces[-2].strip().replace("\n", " ")
 				else:
 					places[1] = place
 					places[2] = "" 
@@ -381,14 +381,13 @@ def getGoogleUserPosts(driver, urlPosts):
 			video = row.find("a", {"class":"kq ot-anchor"}).getText()
 		except:
 			video = " "
-		post = time + "\t" + text + "\t" + video
-		posts.append(post)
+		try:
+			post = time + "\t" + text + "\t" + video
+			posts.append(post)
+		except:
+			posts.append("")
 	print(len(posts))
 	return posts
-
-
-
-
 
 
 def loginGoogle(driver):

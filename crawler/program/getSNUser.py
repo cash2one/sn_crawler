@@ -9,6 +9,7 @@ import time
 # open driver
 def getSNUsers(sn):
 	
+	
 # login twitter website
 
 # get data

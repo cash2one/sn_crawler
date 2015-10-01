@@ -1,4 +1,4 @@
-
+import os
 # File Related
 
 def initFolder(snFolder):
@@ -63,8 +63,13 @@ def parseTitleTime(string):
 		titleTime = string.split(",")		
 		if len(titleTime) == 1:
 			if "-" in string:
-				title = ""
-				timeFrom, timeTo = parseTime(string)
+				try: 
+					title = ""
+					timeFrom, timeTo = parseTime(string)
+					int(timeFrom)
+				except:
+					title = string
+					timeFrom, timeTo = "", ""
 			else:
 				title = string
 				timeFrom, timeTo = "", ""
