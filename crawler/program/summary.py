@@ -23,7 +23,32 @@ def createSNMapping():
 	ut.writeList2CommaLine("../data", "twitterMapping", twitterMapping)
 
 
+def calEdges(sn):
+	path = "../data/"
+	fileName = "relationship_file"
+	count = 0
+	with open(path+sn+"/"+fileName, 'r') as fi:
+		for line in fi:
+			try:
+				count = count + len(line.split(" ")[1].split(","))
+			except:
+				continue
+	print(count)
+
+def calNodes(sn):
+	path = "../data/"
+	fileName = "allid_file"
+	ids = list()
+	with open(path+sn+"/"+fileName, "r") as fi:
+		for line in fi:
+			uid = line.strip()
+			if uid not in ids:
+				ids.append(uid)
+	print(len(ids))
+
 
 if __name__ == "__main__":
 	print("summary")
-	createSNMapping()
+	# createSNMapping()
+	# calEdges("twitter")
+	calNodes("twitter")
