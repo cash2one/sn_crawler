@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import networkx as nx
 import urllib
 import os
 import math
@@ -14,49 +15,50 @@ import time
 snList = ["youtube", "facebook", "twitter", "linkedin", "flickr", "instagram", "tumblr", "github", "pinterest", "plus.google"]
 path = "../data/"
 # user = "111867549117983525241"
-user = "109675028280981323746"
+root = "109675028280981323746"
 
 def getGoogleUsers(sn = "google"):
 
-# firefox 
-	# profile = webdriver.FirefoxProfile()
-	# profile.set_preference("intl.accept_languages","en-us"); 
-	# profile.set_preference("font.language.group","x-western")
-	driver = webdriver.Firefox()
-
-	# login
-
-	# chrome
-	# options = webdriver.ChromeOptions()
-	# options.add_argument('--lang=en')
-	# driver = webdriver.Chrome(chrome_options=options)
+	driver = getDriver()
 	loginGoogle(driver)
 
 	# init variable
 	snFolder = path+sn+"/"
 	ids = ut.readLine2List(snFolder, "id_file")
 	allids = ut.readLine2List(snFolder, "allid_file")
-	tmpids = ut.readLine2List(snFolder, "tmpid_file")
-	tmpids = [uid for uid in allids if uid not in ids]
+	nextids = allids[len(ids)+1:]
+	id_error_writer = open(snFolder+"id_error_writer", "a")
 
-	# init parse list
-	if len(tmpids) == 0:
-		tmpids.append(user)
-		allids.append(user)
-	for uid in tmpids:
-		if uid not in ids:
-			# time.sleep(2)
-			print(uid)
-			parseGoogleUser(driver, snFolder, uid, ids, allids, tmpids)
+
+	if len(allids)==0:
+		allids.append(root)
+	# build social network here
+	g = initGraph(allids, ids)
+
+	for uid in nextids:
+		# if uid not in ids:
+		error = 0
+		print(uid)
+		# iterate until parse successfully
+		while True:
+			try:
+				if error == 5:
+					id_error_writer.write(str(uid)+"\n")
+					break
+				if parseGoogleUser(driver, g, snFolder, uid, ids, allids, nextids):
+					break
+			except:
+				error = error+1
+				pass
 		# just add new ids here, don't delete the user id
 	driver.close()
 
 # def parseGoogleUser(driver, id, id_writer, allid_writer, rela_writer, sn_writer, profile_writer, content_path):
-def parseGoogleUser(driver, snFolder, uid, ids, allids, tmpids):
+def parseGoogleUser(driver, g, snFolder, uid, ids, allids, nextids):
 	s = time.time()
 	urlPrefix = "https://plus.google.com/"
 	urlAbout = urlPrefix+uid+"/about"
-	urlPosts = urlPrefix+uid+"/posts"
+	# urlPosts = urlPrefix+uid+"/posts"
 	# init file 
 	ut.initFolder(snFolder)
 	id_writer = open(snFolder+"id_file", 'a', encoding="utf8")
@@ -79,12 +81,22 @@ def parseGoogleUser(driver, snFolder, uid, ids, allids, tmpids):
 		# post_num = writeGoogleUserWall(driver, snFolder, urlPosts, uid)
 
 		# add id
-		ids.append(uid)
+		# ids.append(uid)
 		for friend in friends:
-			if friend not in allids:
+			try:
+				g.node[uid]
+			except:
+				g.add_node(uid, status=0)
 				allids.append(friend)
+				nextids.append(friend)
 				allid_writer.write(friend+"\n")
-				tmpids.append(friend)
+
+			# if friend not in allids:
+			# 	allids.append(friend)
+			# 	allid_writer.write(friend+"\n")
+			# 	nextids.append(friend)
+		g.node[uid]["status"] = 1
+
 		# write file
 		sn_writer.write(uid+','+','.join(sns)+'\n')
 		profile_writer.write(uid+',\t'+',\t'.join(infos)+'\n')
@@ -109,6 +121,7 @@ def parseGoogleUser(driver, snFolder, uid, ids, allids, tmpids):
 		print(uid+" spend time:"+str(e-s))
 	else:
 		id_writer.write(uid+"\n")
+	return True
 
 def getGoogleUserSocialNetwork(soup):
 	sns = [""]*len(snList)
@@ -131,7 +144,7 @@ def getGoogleUserSocialNetwork(soup):
 				if index != -1:
 					sns[index] =  link
 				else:
-					print(sn)
+					print(link)
 		return sns, sn_bool
 	except:
 		print("sn error")
@@ -381,6 +394,20 @@ def getGoogleUserPosts(driver, urlPosts):
 	return posts
 
 
+def getDriver():
+	# firefox 
+	# profile = webdriver.FirefoxProfile()
+	# profile.set_preference("intl.accept_languages","en-us"); 
+	# profile.set_preference("font.language.group","x-western")
+	return	webdriver.Firefox()
+	# login
+
+	# chrome
+	# options = webdriver.ChromeOptions()
+	# options.add_argument('--lang=en')
+	# driver = webdriver.Chrome(chrome_options=options)
+
+
 def loginGoogle(driver):
 	driver.get("https://plus.google.com/")
 	email_input = driver.find_element_by_id("Email")
@@ -391,6 +418,13 @@ def loginGoogle(driver):
 	pwd_input.send_keys("PIpi09087358")
 	login_btn = driver.find_element_by_id("signIn").click()
 
+def initGraph(allids, ids):
+	g = nx.Graph()
+	for uid in allids:
+		g.add_node(uid, status=0) 
+	for uid in ids:
+		g.node[uid]["status"] = 1
+	return g
 
 if __name__ == "__main__":
 	getGoogleUsers()
