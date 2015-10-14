@@ -10,12 +10,94 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from bs4 import BeautifulSoup
 import time
+import multiprocessing as mp
 
 # snList = ["facebook", "twitter", "linkedin", "pinterest", "plus.google", "tumblr", "instagram", "VK", "flickr", "Vine", "youtube", "github"]
 snList = ["youtube", "facebook", "twitter", "linkedin", "flickr", "instagram", "tumblr", "github", "pinterest", "plus.google"]
 path = "../data/"
-# user = "111867549117983525241"
 root = "109675028280981323746"
+
+
+def getGoogleUsersParellel(sn= "google"):
+	# read from file
+	snFolder = path+sn+"/"
+
+	ids = ut.readLine2List(snFolder, "id_file")
+	allids = ut.readLine2List(snFolder, "allid_file")
+	nextids = allids[len(ids)+1:]
+
+	# write file
+	id_error_writer = open(snFolder+"id_error_writer", "a")
+	id_writer = open(snFolder+"id_file", 'a', encoding="utf8")
+	allid_writer = open(snFolder+"allid_file", 'a', encoding="utf8")
+	id_record_writer = open(snFolder+"id_record_file", 'a', encoding="utf8")
+
+	sn_writer = open(snFolder+"sn_file", 'a', encoding="utf8")
+	profile_writer = open(snFolder+"profile_file", 'a', encoding="utf8")
+	rela_writer = open(snFolder+"relationship_file", 'a', encoding="utf8")
+
+	# init the next users and record them in the graph
+	if len(allids) == 0:
+		allids.append(root)
+	g = initGraph(allids, ids)
+	index = 0
+
+	# multiprocess to get the user info
+	procNum = 4
+	batchNum = 200
+	while index < len(nextids):
+		result = list()
+		q = mp.Queue()
+		roundNum = procNum * batchNum
+		procs = list()
+		# count the process users
+		if index+roundNum < len(nextids):
+			procNum = 4
+			for i in range(procNum):
+				batchids = nextids[index+i*batchNum, index+(i+1)*batchNum]
+				p = mp.Process(target=worker, args=(batchids,q))
+				p.start()
+				procs.append(p)
+			for i in range(roundNum):
+				result += q.get()
+			for proc in procs:
+				proc.join()
+		else:
+			batchids = nextids[index:]
+			p = mp.Process(target=worker, args=(batchids,q))
+			p.start()
+			result += q.get()
+			p.join()
+		# process back data 
+		for userData in result:
+			# dictionary: {id: uid, info: infos, relationship: friends, sn: sns, sn_bool: true false}
+			uid = userData["id"]
+			infos = userData["info"]
+			friends = userData["relationship"]
+			sns = userData["sn"]
+			sn_bool = userData["sn_bool"]
+
+			if g.node[uid]["status"] == 1:
+				continue
+			else:
+				# the user in not process before
+				if infos != None:
+					writeUser2File(uid, sns, sn_bool, infos, friends, friend_bool, sn_writer, profile_writer, rela_writer, id_writer, id_record_writer)
+					addFriend(g, friends, allids, allid_writer, nextids)
+					g.node[uid]["status"] = 1
+					ids.append(uid)
+				else:
+					id_writer.write(uid+"\n")
+		index = index + procNum*batchNum
+
+
+
+# write the worker here
+def worker(batchids, g):
+	driver = webdriver.Firefox()
+
+
+
 
 def getGoogleUsers(sn = "google"):
 
@@ -82,36 +164,12 @@ def parseGoogleUser(driver, g, snFolder, uid, ids, allids, nextids):
 
 		# add id
 		# ids.append(uid)
-		for friend in friends:
-			try:
-				g.node[uid]
-			except:
-				g.add_node(uid, status=0)
-				allids.append(friend)
-				nextids.append(friend)
-				allid_writer.write(friend+"\n")
 
-			# if friend not in allids:
-			# 	allids.append(friend)
-			# 	allid_writer.write(friend+"\n")
-			# 	nextids.append(friend)
+		addFriend(g, friends, allids, allid_writer, nextids)
 		g.node[uid]["status"] = 1
-
+		writeUser2File(uid, sns, sn_bool, infos, friends, friend_bool, sn_writer, profile_writer, rela_writer, id_writer, id_record_writer)
 		# write file
-		sn_writer.write(uid+','+','.join(sns)+'\n')
-		profile_writer.write(uid+',\t'+',\t'.join(infos)+'\n')
-		rela_writer.write(uid+' '+','.join(friends)+'\n')
-		id_writer.write(uid+"\n")
-		id_record_writer.write(uid)
 
-		if sn_bool:
-			id_record_writer.write(","+str(1))
-		else:
-			id_record_writer.write(","+str(0))
-		if friend_bool:
-			id_record_writer.write(","+str(1)+"\n")
-		else:
-			id_record_writer.write(","+str(0)+'\n')
 		# if post_num>0:
 		# 	id_record_writer.write(","+str(1)+"\n")
 		# else:
@@ -425,6 +483,31 @@ def initGraph(allids, ids):
 	for uid in ids:
 		g.node[uid]["status"] = 1
 	return g
+
+def addFriend(g, friends, allids, allids_writer, nextids):
+	for friend in friends:
+		try:
+			g.node[friend]
+		except:
+			g.add_node(friend, status=0)
+			allids.append(friend)
+			allids_writer.write(friend+"\n")
+			nextids.append(friend)
+
+def writeUser2File(uid, sns, sn_bool, infos, friends, friend_bool, sn_writer, profile_writer, rela_writer, id_writer, id_record_writer):
+	sn_writer.write(uid+','+','.join(sns)+'\n')
+	profile_writer.write(uid+',\t'+',\t'.join(infos)+'\n')
+	rela_writer.write(uid+' '+','.join(friends)+'\n')
+	id_writer.write(uid+"\n")
+	id_record_writer.write(uid)
+	if sn_bool:
+		id_record_writer.write(","+str(1))
+	else:
+		id_record_writer.write(","+str(0))
+	if friend_bool:
+		id_record_writer.write(","+str(1)+"\n")
+	else:
+		id_record_writer.write(","+str(0)+'\n')
 
 if __name__ == "__main__":
 	getGoogleUsers()
