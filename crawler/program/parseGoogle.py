@@ -65,11 +65,9 @@ def getGoogleUsersParellel(sn= "google"):
 			batchids = nextids[index:]
 			p = mp.Process(target=worker, args=(batchids,q))
 			p.start()
-			print(q.get())
 			result += q.get()
 			p.join()
 		# process back data 
-		print(result)
 		for userData in result:
 			# dictionary: {id: uid, status: false or true,infos: infos, friends: friends, friend_bool: true, sns: sns, sn_bool: true false}
 			uid = userData["id"]
@@ -112,7 +110,6 @@ def worker(batchids, q):
 					break
 				else:
 					output = parseGoogleUserParellel(driver, uid)
-					print([output])
 					q.put([output])
 					break
 			except:
