@@ -43,7 +43,7 @@ def getGoogleUsersParellel(sn= "google"):
 	index = 0
 
 	# multiprocess to get the user info
-	procNum = 4
+	procNum = 6
 	batchNum = 200
 	while index < len(nextids):
 		result = list()
@@ -52,9 +52,8 @@ def getGoogleUsersParellel(sn= "google"):
 		procs = list()
 		# count the process users
 		if index+roundNum < len(nextids):
-			procNum = 4
 			for i in range(procNum):
-				batchids = nextids[index+i*batchNum, index+(i+1)*batchNum]
+				batchids = nextids[index+i*batchNum:index+((i+1)*batchNum)]
 				p = mp.Process(target=worker, args=(batchids,q))
 				p.start()
 				procs.append(p)
@@ -66,21 +65,27 @@ def getGoogleUsersParellel(sn= "google"):
 			batchids = nextids[index:]
 			p = mp.Process(target=worker, args=(batchids,q))
 			p.start()
+			print(q.get())
 			result += q.get()
 			p.join()
 		# process back data 
+		print(result)
 		for userData in result:
-			# dictionary: {id: uid, info: infos, relationship: friends, sn: sns, sn_bool: true false}
+			# dictionary: {id: uid, status: false or true,infos: infos, friends: friends, friend_bool: true, sns: sns, sn_bool: true false}
 			uid = userData["id"]
-			infos = userData["info"]
-			friends = userData["relationship"]
-			sns = userData["sn"]
+			infos = userData["infos"]
+			friends = userData["friends"]
+			sns = userData["sns"]
 			sn_bool = userData["sn_bool"]
+			friend_bool = userData["friend_bool"]
+			status = userData["status"]
+
 
 			if g.node[uid]["status"] == 1:
 				continue
+			elif status==False:
+				id_error_writer.write(uid+"\n")
 			else:
-				# the user in not process before
 				if infos != None:
 					writeUser2File(uid, sns, sn_bool, infos, friends, friend_bool, sn_writer, profile_writer, rela_writer, id_writer, id_record_writer)
 					addFriend(g, friends, allids, allid_writer, nextids)
@@ -92,11 +97,45 @@ def getGoogleUsersParellel(sn= "google"):
 
 
 
+
 # write the worker here
-def worker(batchids, g):
+def worker(batchids, q):
+	# init driver
 	driver = webdriver.Firefox()
+	for uid in batchids:
+		error = 0
+		print(uid)
+		while True:
+			try:
+				if error == 5:
+					q.put([{"id": uid, "status": False, "infos": None, "friends": None,"friend_bool": None, "sns": None, "sn_bool": None}])
+					break
+				else:
+					output = parseGoogleUserParellel(driver, uid)
+					print([output])
+					q.put([output])
+					break
+			except:
+				error = error+1
+	driver.close()
 
 
+# Input: driver, user id
+# Output: 
+# Return: dictionary
+def parseGoogleUserParellel(driver, uid):
+	urlPrefix = "https://plus.google.com/"
+	urlAbout = urlPrefix+uid+"/about"
+	driver.get(urlAbout)
+	html = driver.page_source
+	soup = BeautifulSoup(html, "html5lib")
+	sns, sn_bool = getGoogleUserSocialNetwork(soup)
+	infos = getGoogleUserProfile(soup)
+	if infos != None:
+		friends, friend_bool = getGoogleUserRelationship(driver)
+		return {"id": uid, "status": True, "infos": infos, "friends": friends, "friend_bool": friend_bool, "sns": sns, "sn_bool": sn_bool}
+	else:
+		return {"id": uid, "status": True, "infos": None, "friends": None, "friend_bool": None, "sns": None, "sn_bool": None}
 
 
 def getGoogleUsers(sn = "google"):
@@ -134,6 +173,10 @@ def getGoogleUsers(sn = "google"):
 				pass
 		# just add new ids here, don't delete the user id
 	driver.close()
+
+
+
+
 
 # def parseGoogleUser(driver, id, id_writer, allid_writer, rela_writer, sn_writer, profile_writer, content_path):
 def parseGoogleUser(driver, g, snFolder, uid, ids, allids, nextids):
@@ -202,7 +245,8 @@ def getGoogleUserSocialNetwork(soup):
 				if index != -1:
 					sns[index] =  link
 				else:
-					print(link)
+					# print(link)
+					pass
 		return sns, sn_bool
 	except:
 		print("sn error")
@@ -376,7 +420,7 @@ def getGoogleUserRelationship(driver):
 		scrollLast = -(friend_num % 12)
 		scrollTop = 0
 		for i in range(scrollTimes):
-			print(i)
+			# print(i)
 			scrollTop = i * 588
 			driver.execute_script("var e=document.getElementsByClassName(\"wja oha b-K\")[0];e.scrollTop=%s;" % scrollTop)
 			fids = [a.get_attribute("oid") for a in frame.find_elements(By.CSS_SELECTOR, ".ob.Jk")]
@@ -392,7 +436,7 @@ def getGoogleUserRelationship(driver):
 			fids = [a.get_attribute("oid") for a in frame.find_elements(By.CSS_SELECTOR, ".ob.Jk")[scrollLast:]]
 			friends = friends+fids
 		friend_loaded = len(friends)
-		print(friend_loaded)
+		# print(friend_loaded)
 		if len(friends) > 0:
 			friend_bool = True
 		return friends, friend_bool
@@ -510,7 +554,8 @@ def writeUser2File(uid, sns, sn_bool, infos, friends, friend_bool, sn_writer, pr
 		id_record_writer.write(","+str(0)+'\n')
 
 if __name__ == "__main__":
-	getGoogleUsers()
+	# getGoogleUsers()
+	getGoogleUsersParellel()
 
 
 	# html = ""
