@@ -12,16 +12,17 @@ from bs4 import BeautifulSoup
 import time
 import multiprocessing as mp
 
+# This file is for parsing relationship and profiles on google plus
+
+
 # snList = ["facebook", "twitter", "linkedin", "pinterest", "plus.google", "tumblr", "instagram", "VK", "flickr", "Vine", "youtube", "github"]
 snList = ["youtube", "facebook", "twitter", "linkedin", "flickr", "instagram", "tumblr", "github", "pinterest", "plus.google"]
 path = "../data/"
 root = "109675028280981323746"
 snFolder = path+"google/"
 
+# Description: parallel version to parse data
 def getGoogleUsersParellel():
-	# read from file
-
-
 	ids = ut.readLine2List(snFolder, "id_file")
 	allids = ut.readLine2List(snFolder, "allid_file")
 	# nextids = allids[len(ids)+1:]
@@ -44,9 +45,12 @@ def getGoogleUsersParellel():
 	index = 0
 
 	# multiprocess to get the user info
-	procNum = 8
-	batchNum = 100
+	procNum = 6
+	batchNum = 200
+	drivers = list()
 	lock = mp.Lock()
+	for i in range(procNum):
+		drivers.append(webdriver.Firefox())
 	while index < len(nextids):
 		result = list()
 		q = mp.Queue()
@@ -56,7 +60,7 @@ def getGoogleUsersParellel():
 		if index+roundNum < len(nextids):
 			for i in range(procNum):
 				batchids = nextids[index+i*batchNum:index+((i+1)*batchNum)]
-				p = mp.Process(target=worker, args=(batchids,q))
+				p = mp.Process(target=worker, args=(batchids,q, drivers[i]))
 				p.start()
 				procs.append(p)
 			for i in range(roundNum):
@@ -65,7 +69,7 @@ def getGoogleUsersParellel():
 				proc.join()
 		else:
 			batchids = nextids[index:]
-			p = mp.Process(target=worker, args=(batchids,q))
+			p = mp.Process(target=worker, args=(batchids,q, drivers[0]))
 			p.start()
 			result += q.get()
 			p.join()
@@ -114,13 +118,14 @@ def getGoogleUsersParellel():
 					id_writer.write(uid+"\n")
 		# lock.release()
 		index = index + procNum*batchNum
-
+	for i in range(procNum):
+		drivers[i].close()
 
 
 # write the worker here
-def worker(batchids, q):
+def worker(batchids, q, driver):
 	# init driver
-	driver = webdriver.Firefox()
+	# driver = webdriver.Firefox()
 	for uid in batchids:
 		error = 0
 		print(uid)
@@ -135,7 +140,7 @@ def worker(batchids, q):
 					break
 			except:
 				error = error+1
-	driver.close()
+	# driver.close()
 
 
 # Input: driver, user id
@@ -155,12 +160,10 @@ def parseGoogleUserParellel(driver, uid):
 	else:
 		return {"id": uid, "status": True, "infos": None, "friends": None, "friend_bool": None, "sns": None, "sn_bool": None}
 
-
+# Description: single process version
 def getGoogleUsers(sn = "google"):
-
 	driver = getDriver()
 	loginGoogle(driver)
-
 	# init variable
 	snFolder = path+sn+"/"
 	ids = ut.readLine2List(snFolder, "id_file")
@@ -191,9 +194,6 @@ def getGoogleUsers(sn = "google"):
 				pass
 		# just add new ids here, don't delete the user id
 	driver.close()
-
-
-
 
 
 # def parseGoogleUser(driver, id, id_writer, allid_writer, rela_writer, sn_writer, profile_writer, content_path):

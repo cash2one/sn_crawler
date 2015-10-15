@@ -16,7 +16,6 @@ http_method = "GET"
 http_handler  = urllib.request.HTTPHandler(debuglevel=_debug)
 https_handler = urllib.request.HTTPSHandler(debuglevel=_debug)
 
-
 path = "../data/twitter/"
 allidFileName = "allid_file"
 idFileName = "id_file"
@@ -25,6 +24,8 @@ profileFileName = "profile_file"
 relationshipFileName = "relationship_file"
 # Construct, sign, and open a twitter request
 # using the hard-coded credentials above.
+
+# Description: oauth connect before api
 def twitterreq(url, method, parameters):
 	req = oauth.Request.from_consumer_and_token(oauth_consumer,token=oauth_token,http_method=http_method,http_url=url, parameters=parameters)
 	req.sign_request(signature_method_hmac_sha1, oauth_consumer, oauth_token)
@@ -40,6 +41,7 @@ def twitterreq(url, method, parameters):
 	response = opener.open(url, encoded_post_data)
 	return response
 
+# Description: twitter api using example
 def fetchsamples():
 	# url = "https://stream.twitter.com/1/statuses/sample.json"
 	url = "https://api.twitter.com/1.1/friends/ids.json?cursor=-1&user_id=3140536897&count=5000"
@@ -98,10 +100,10 @@ def getUserTweets(user_id="", screen_name=""):
 	return jresult	
 
 
-# def getUserData():
+def getUsersFriendship():
 
 
-
+# Description: 
 def getUsersData():
 	path = "../data/"
 	sn = "twitter"
