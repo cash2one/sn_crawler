@@ -44,8 +44,8 @@ def getGoogleUsersParellel():
 	index = 0
 
 	# multiprocess to get the user info
-	procNum = 2
-	batchNum = 1
+	procNum = 8
+	batchNum = 100
 	lock = mp.Lock()
 	while index < len(nextids):
 		result = list()
