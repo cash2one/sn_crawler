@@ -24,7 +24,8 @@ def getGoogleUsersParellel():
 
 	ids = ut.readLine2List(snFolder, "id_file")
 	allids = ut.readLine2List(snFolder, "allid_file")
-	nextids = allids[len(ids)+1:]
+	# nextids = allids[len(ids)+1:]
+	nextids = list(set(allids)-set(ids))
 
 	# write file
 	id_error_writer = open(snFolder+"id_error_writer", "a")
@@ -71,7 +72,6 @@ def getGoogleUsersParellel():
 		# process back data 
 		# lock.acquire()
 		for userData in result:
-			print("user data extract")
 			# dictionary: {id: uid, status: false or true,infos: infos, friends: friends, friend_bool: true, sns: sns, sn_bool: true false}
 			uid = userData["id"]
 			infos = userData["infos"]
@@ -81,18 +81,31 @@ def getGoogleUsersParellel():
 			friend_bool = userData["friend_bool"]
 			status = userData["status"]
 
-
 			if g.node[uid]["status"] == 1:
-				print("already in graph")
+				# print("already in graph")
 				continue
 			elif status==False:
-				print("cannot read be parsed")
+				# print("cannot read be parsed")
 				id_error_writer.write(uid+"\n")
 			else:
-				print("new user")
+				# print("new user")
 				if infos != None:
-					print("have info")
-					writeUser2File(uid, sns, sn_bool, infos, friends, friend_bool, sn_writer, profile_writer, rela_writer, id_writer, id_record_writer)
+					# writeUser2File(uid, sns, sn_bool, infos, friends, friend_bool, sn_writer, profile_writer, rela_writer, id_writer, id_record_writer)
+					# print("start to write:"+uid)
+					sn_writer.write(uid+','+','.join(sns)+'\n')
+					profile_writer.write(uid+',\t'+',\t'.join(infos)+'\n')
+					rela_writer.write(uid+' '+','.join(friends)+'\n')
+					id_writer.write(uid+"\n")
+					id_record_writer.write(uid)
+					if sn_bool:
+						id_record_writer.write(","+str(1))
+					else:
+						id_record_writer.write(","+str(0))
+					if friend_bool:
+						id_record_writer.write(","+str(1)+"\n")
+					else:
+						id_record_writer.write(","+str(0)+'\n')
+					# print("finish write")
 					addFriend(g, friends, allids, allid_writer, nextids)
 					g.node[uid]["status"] = 1
 					ids.append(uid)
@@ -594,9 +607,9 @@ def reviseIdFile():
 
 if __name__ == "__main__":
 	# getGoogleUsers()
-	# getGoogleUsersParellel()
+	getGoogleUsersParellel()
 
-	reviseIdFile()
+	# reviseIdFile()
 	# html = ""
 	# with open("html", "r") as fi:
 	# 	html = fi.read()
