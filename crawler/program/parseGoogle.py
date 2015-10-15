@@ -16,11 +16,11 @@ import multiprocessing as mp
 snList = ["youtube", "facebook", "twitter", "linkedin", "flickr", "instagram", "tumblr", "github", "pinterest", "plus.google"]
 path = "../data/"
 root = "109675028280981323746"
+snFolder = path+"google/"
 
-
-def getGoogleUsersParellel(sn= "google"):
+def getGoogleUsersParellel():
 	# read from file
-	snFolder = path+sn+"/"
+
 
 	ids = ut.readLine2List(snFolder, "id_file")
 	allids = ut.readLine2List(snFolder, "allid_file")
@@ -43,8 +43,9 @@ def getGoogleUsersParellel(sn= "google"):
 	index = 0
 
 	# multiprocess to get the user info
-	procNum = 6
-	batchNum = 200
+	procNum = 2
+	batchNum = 1
+	lock = mp.Lock()
 	while index < len(nextids):
 		result = list()
 		q = mp.Queue()
@@ -68,7 +69,9 @@ def getGoogleUsersParellel(sn= "google"):
 			result += q.get()
 			p.join()
 		# process back data 
+		# lock.acquire()
 		for userData in result:
+			print("user data extract")
 			# dictionary: {id: uid, status: false or true,infos: infos, friends: friends, friend_bool: true, sns: sns, sn_bool: true false}
 			uid = userData["id"]
 			infos = userData["infos"]
@@ -80,19 +83,24 @@ def getGoogleUsersParellel(sn= "google"):
 
 
 			if g.node[uid]["status"] == 1:
+				print("already in graph")
 				continue
 			elif status==False:
+				print("cannot read be parsed")
 				id_error_writer.write(uid+"\n")
 			else:
+				print("new user")
 				if infos != None:
+					print("have info")
 					writeUser2File(uid, sns, sn_bool, infos, friends, friend_bool, sn_writer, profile_writer, rela_writer, id_writer, id_record_writer)
 					addFriend(g, friends, allids, allid_writer, nextids)
 					g.node[uid]["status"] = 1
 					ids.append(uid)
 				else:
+					print("no info")
 					id_writer.write(uid+"\n")
+		# lock.release()
 		index = index + procNum*batchNum
-
 
 
 
@@ -536,6 +544,7 @@ def addFriend(g, friends, allids, allids_writer, nextids):
 			nextids.append(friend)
 
 def writeUser2File(uid, sns, sn_bool, infos, friends, friend_bool, sn_writer, profile_writer, rela_writer, id_writer, id_record_writer):
+	print("start to write:"+uid)
 	sn_writer.write(uid+','+','.join(sns)+'\n')
 	profile_writer.write(uid+',\t'+',\t'.join(infos)+'\n')
 	rela_writer.write(uid+' '+','.join(friends)+'\n')
@@ -549,12 +558,45 @@ def writeUser2File(uid, sns, sn_bool, infos, friends, friend_bool, sn_writer, pr
 		id_record_writer.write(","+str(1)+"\n")
 	else:
 		id_record_writer.write(","+str(0)+'\n')
+	print("finish write")
+
+
+def reviseIdFile():
+	ids = ut.readLine2List(snFolder, "id_file2")
+	allids = ut.readLine2List(snFolder, "allid_file")
+	loss = ut.readLine2List(snFolder, "tmp_ids")
+
+	# revise id file duplicate problem
+	g=nx.Graph()
+	dup = list()
+	num = list()
+	for i in range(len(allids)):
+		id = allids[i]
+		try:
+			g.node[id]
+			dup.append(id)
+			num.append(i)
+		except:
+			g.add_node(id)
+	print(len(dup))
+	for i in range(len(num)-1, -1, -1):
+		pos = num[i]
+		del allids[pos]
+	for l in loss:
+		allids.append(l)
+	ut.writeList2Line("../data/google/", "allid_file2", allids)
+	
+	# loss = list(set(allids[:(len(ids))])-set(ids))
+	# ut.writeList2Line("../data/google/", "tmp_ids", loss)
+
+
+
 
 if __name__ == "__main__":
 	# getGoogleUsers()
-	getGoogleUsersParellel()
+	# getGoogleUsersParellel()
 
-
+	reviseIdFile()
 	# html = ""
 	# with open("html", "r") as fi:
 	# 	html = fi.read()

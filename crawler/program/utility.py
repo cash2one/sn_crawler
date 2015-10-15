@@ -30,6 +30,12 @@ def readCommaLine2List(path, fileName):
 	except:
 		return results
 
+def writeList2Line(path, fileName, results):
+	if results != None and len(results)>0:
+		with open(getFileLocation(path, fileName), "w") as fo:
+			for result in results:
+				fo.write(result+'\n')
+
 def writeList2CommaLine(path, fileName, results):
 	if results != None and len(results)>0:
 		with open(getFileLocation(path, fileName), "w") as fo:
