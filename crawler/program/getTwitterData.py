@@ -3,6 +3,7 @@ import urllib.request
 import json
 import utility as ut
 import time
+import codecs
 
 access_token_key = "3747058694-vRq5oGRM8n1mezVe6JDYO2bqgPMMKVU0aLT0BE7"
 access_token_secret = "EFuKvhM5a8Qxv4sQuPD1zSRB5svaKlg6UqdU6lh1TWmN6"
@@ -19,11 +20,14 @@ https_handler = urllib.request.HTTPSHandler(debuglevel=_debug)
 path = "../data/twitter/"
 allidFileName = "allid_file"
 idFileName = "id_file"
+idPostFileName = "id_post_file"
+idProfileFileName = "id_profile_file"
 idRecordFileName = "id_record_file"
 profileFileName = "profile_file"
 relationshipFileName = "relationship_file"
 # Construct, sign, and open a twitter request
 # using the hard-coded credentials above.
+# friends: 1/min, profile: 12/min, post: 12/min
 
 # Description: oauth connect before api
 def twitterreq(url, method, parameters):
@@ -65,7 +69,24 @@ def getUserProfile(user_id="", screen_name=""):
 	jresult = json.loads(result)
 	return jresult
 
-def getUserFriendship(user_id="", screen_name=""):
+# Description: get user profile and save it in profile
+def getUsersProfile():
+	# total user - crawled users before
+	usernames = ut.readLine2List(path, "usernames")
+	usernamesCrawled = ut.readLine2List(path, idProfileFileName)
+	fi = open(path+idProfileFileName, 'a')
+	for username in usernames[len(usernamesCrawled):]:
+		print(username)
+		time.sleep(5)
+		profile = getUserProfile("",username)
+		with codecs.open(path+"profile/"+username, "w", encoding="utf-8") as fo:
+			fo.write(json.dumps(profile, indent=4, ensure_ascii=False))
+		fi.write(username+'\n')
+
+
+
+# Description: get max 5000 friends at a time if exceed put into friends_over1page
+def getUserFriendship(id_post_writer, user_id="", screen_name=""):
 	url = "https://api.twitter.com/1.1/friends/ids.json?cursor=-1&count=5000"
 	if user_id != "":
 		url = url + "&user_id="+user_id
@@ -76,17 +97,36 @@ def getUserFriendship(user_id="", screen_name=""):
 	parameters = []
 	response = twitterreq(url, "GET", parameters)
 	result = response.read().decode("utf-8")
-	print(result)
 	jresult = json.loads(result)
 	try:
+		if jresult["next_cursor"] !=0:
+			id_post_writer.write(screen_name+"\n")
 		friends = jresult["ids"]
 		return friends
 	except:
 		return list()
-		
 
+# Output: 1. id_post_file: record now crawl users, 2. relationship_file
+# Description: output the friends
+def getUsersFriendship():
+	usernames = ut.readLine2List(path, "usernames")
+	counts = 0
+	# from where to start
+	with open(path + relationshipFileName, "r") as fi:
+		count = len(fi.readlines())
+	id_post_writer = open(path+"friends_over1page", "a")
+	with open(path+relationshipFileName, "a", encoding="utf-8") as fo:
+		for username in usernames[count:]:
+			time.sleep(60)
+			friends = getUserFriendship(id_post_writer, "", username, )
+			friends = [str(a) for a in friends]
+			fo.write(username+" "+",".join(friends)+"\n")
+		
+# Return: list of tweet 
+# Description: get the tweets from the user with max = 5000 tweet +retweet
 def getUserTweets(user_id="", screen_name=""):
-	url = "https://api.twitter.com/1.1/statuses/user_timeline.json?trim_user=false"
+	tweets = list()
+	url = "https://api.twitter.com/1.1/statuses/user_timeline.json?trim_user=false&include_rts=1&"
 	if user_id != "":
 		url = url + "&user_id="+user_id
 	elif screen_name != "":
@@ -97,10 +137,36 @@ def getUserTweets(user_id="", screen_name=""):
 	response = twitterreq(url, "GET", parameters)
 	result = response.read().decode("utf-8")
 	jresult = json.loads(result)
-	return jresult	
+	tweets = tweets + jresult
+	maxId = str(int(jresult[-1]["id_str"])-1)
+	while (len(jresult)>0 and len(tweets)<5000):
+		time.sleep(5)
+		urlNext = url+"&max_id="+maxId
+		response = twitterreq(urlNext, "GET", parameters)
+		result = response.read().decode("utf-8")
+		jresult = json.loads(result)
+		if len(jresult) > 0:
+			tweets = tweets + jresult
+			maxId = str(int(jresult[-1]["id_str"])-1)
+	return tweets	
+
+# Output: write tweet to username file in wall folder
+def getUsersTweets():
+	usernames = ut.readLine2List(path, "usernames")
+	usernamesCrawled = ut.readLine2List(path, "id_post_file")
+	fi = open(path+idPostFileName, 'a')
+	for username in usernames[len(usernamesCrawled):]:
+		print(username)
+		time.sleep(5)
+		tweets = getUserTweets("",username)
+		with codecs.open(path+"wall/"+username, "w", encoding="utf-8") as fo:
+			fo.write(json.dumps(tweets, indent=4, ensure_ascii=False))
+		fi.write(username+'\n')
 
 
-def getUsersFriendship():
+
+
+
 
 
 # Description: 
@@ -110,8 +176,7 @@ def getUsersData():
 	snFolder = path+sn+"/"	
 	# init file
 	ut.initFolder(snFolder)
-	ids = ut.readLine2List(snFolder, "id_file")
-	allids = ut.readLine2List(snFolder, "allid_file")
+
 	tmpids = ut.readLine2List(snFolder, "tmpid_file")
 	tmpids = [uid for uid in allids if uid not in ids]
 	id_writer = open(snFolder+"id_file", 'a', encoding="utf8")
@@ -148,12 +213,25 @@ def getUsersData():
 	# for screenName in screenNames:
 
 
+def writeUserName():
+	mapping = ut.readCommaLine2List("../data/", "twitterMapping")
+	usernames = [a[1].split("/")[-1].strip() for a in mapping]
+	with open(path+"usernames", "w") as fo:
+		for username in usernames:
+			fo.write(username+"\n")
+
+def pretify():
+	with open(path+"wall/11586422", "r") as fi:
+		jresult = json.loads(fi.read())
+	with codecs.open(path+"wall/11586422", "w", encoding="utf-8") as fo:
+		fo.write(json.dumps(jresult, indent=4, ensure_ascii=False))
 
 
 if __name__ == '__main__':
+	# writeUserName()
 	# fetchsamples()
 	# print(getUserFriendship(user_id="17004618"))
 
-	# getUserProfile()
-	# getUserTweets()
-	getUsersData()
+	# getUsersFriendship()
+	# getUsersTweets()
+	getUsersProfile()

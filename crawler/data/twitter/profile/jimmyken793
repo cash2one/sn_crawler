@@ -1,0 +1,86 @@
+{
+    "profile_sidebar_fill_color": "DDEEF6",
+    "time_zone": "Taipei",
+    "lang": "zh-tw",
+    "description": "",
+    "profile_link_color": "0084B4",
+    "default_profile": true,
+    "geo_enabled": false,
+    "profile_background_image_url_https": "https://abs.twimg.com/images/themes/theme1/bg.png",
+    "profile_image_url_https": "https://abs.twimg.com/sticky/default_profile_images/default_profile_2_normal.png",
+    "contributors_enabled": false,
+    "profile_sidebar_border_color": "C0DEED",
+    "following": false,
+    "utc_offset": 28800,
+    "id": 8755952,
+    "listed_count": 0,
+    "friends_count": 100,
+    "profile_background_tile": false,
+    "location": "Taiwan",
+    "is_translation_enabled": false,
+    "protected": false,
+    "statuses_count": 233,
+    "url": null,
+    "followers_count": 25,
+    "profile_image_url": "http://abs.twimg.com/sticky/default_profile_images/default_profile_2_normal.png",
+    "status": {
+        "in_reply_to_user_id_str": null,
+        "truncated": false,
+        "retweet_count": 0,
+        "contributors": null,
+        "coordinates": null,
+        "lang": "und",
+        "possibly_sensitive": false,
+        "id": 565034287360393216,
+        "in_reply_to_screen_name": null,
+        "favorite_count": 0,
+        "text": "Yoooooooooo http://t.co/CDXYQQj8Oy",
+        "in_reply_to_status_id_str": null,
+        "geo": null,
+        "retweeted": false,
+        "created_at": "Tue Feb 10 06:27:26 +0000 2015",
+        "in_reply_to_status_id": null,
+        "favorited": false,
+        "entities": {
+            "symbols": [],
+            "urls": [
+                {
+                    "url": "http://t.co/CDXYQQj8Oy",
+                    "display_url": "instagram.com/p/y6Rtc5kb5X/",
+                    "expanded_url": "http://instagram.com/p/y6Rtc5kb5X/",
+                    "indices": [
+                        12,
+                        34
+                    ]
+                }
+            ],
+            "hashtags": [],
+            "user_mentions": []
+        },
+        "id_str": "565034287360393216",
+        "source": "<a href=\"http://instagram.com\" rel=\"nofollow\">Instagram</a>",
+        "in_reply_to_user_id": null,
+        "place": null
+    },
+    "verified": false,
+    "screen_name": "jimmyken793",
+    "follow_request_sent": false,
+    "profile_text_color": "333333",
+    "profile_background_image_url": "http://abs.twimg.com/images/themes/theme1/bg.png",
+    "notifications": false,
+    "favourites_count": 5,
+    "default_profile_image": true,
+    "name": "jimmyken793",
+    "created_at": "Sun Sep 09 01:01:52 +0000 2007",
+    "entities": {
+        "description": {
+            "urls": []
+        }
+    },
+    "id_str": "8755952",
+    "is_translator": false,
+    "profile_location": null,
+    "has_extended_profile": false,
+    "profile_background_color": "C0DEED",
+    "profile_use_background_image": true
+}

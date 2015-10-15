@@ -1,4 +1,5 @@
 import os
+import shutil
 # File Related
 
 def initFolder(snFolder):
@@ -96,6 +97,10 @@ def removeWinSpace():
 	for dirname in os.listdir(path):
 		if dirname[:3] == "tmp":
 			print(dirname)
+			try:
+				shutil.rmtree(path+dirname)
+			except:
+				pass
 	# 
 
 if __name__=="__main__":
