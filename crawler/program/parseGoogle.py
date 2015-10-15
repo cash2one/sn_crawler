@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup
 import time
 import multiprocessing as mp
 import threading as th
+import queue 
 
 # This file is for parsing relationship and profiles on google plus
 
@@ -53,16 +54,17 @@ def getGoogleUsersParellel():
 		drivers.append(webdriver.Firefox())
 	while index < len(nextids):
 		result = list()
-		# q = mp.Queue()
-		p = th.Queue()
+		q = mp.Queue()
+		# q = th.Queue()
+		# q = queue.Queue()
 		roundNum = procNum * batchNum
 		procs = list()
 		# count the process users
 		if index+roundNum < len(nextids):
 			for i in range(procNum):
 				batchids = nextids[index+i*batchNum:index+((i+1)*batchNum)]
-				# p = mp.Process(target=worker, args=(batchids,q, drivers[i]))
-				p = th.Thread(target=worker, args=(batchids,q, drivers[i]))
+				p = mp.Process(target=worker_p, args=(batchids,q))
+				# p = th.Thread(target=worker, args=(batchids,q, drivers[i]))
 				p.start()
 				procs.append(p)
 			for i in range(roundNum):
@@ -71,8 +73,8 @@ def getGoogleUsersParellel():
 				proc.join()
 		else:
 			batchids = nextids[index:]
-			# p = mp.Process(target=worker, args=(batchids,q, drivers[0]))
-			p = th.Thread(target=worker, args=(batchids,q, drivers[0]))
+			p = mp.Process(target=worker_p, args=(batchids,q))
+			# p = th.Thread(target=worker, args=(batchids,q, drivers[0]))
 			p.start()
 			result += q.get()
 			p.join()
@@ -120,10 +122,31 @@ def getGoogleUsersParellel():
 					print("no info")
 					id_writer.write(uid+"\n")
 		# lock.release()
+		ut.removeWinSpace()
 		index = index + procNum*batchNum
 	for i in range(procNum):
 		drivers[i].close()
 
+
+# write the worker here
+def worker_p(batchids, q):
+	# init driver
+	driver = webdriver.Firefox()
+	for uid in batchids:
+		error = 0
+		print(uid)
+		while True:
+			try:
+				if error == 5:
+					q.put([{"id": uid, "status": False, "infos": None, "friends": None,"friend_bool": None, "sns": None, "sn_bool": None}])
+					break
+				else:
+					output = parseGoogleUserParellel(driver, uid)
+					q.put([output])
+					break
+			except:
+				error = error+1
+	driver.close()
 
 # write the worker here
 def worker(batchids, q, driver):

@@ -88,3 +88,15 @@ def parseTitleTime(string):
 	else:
 		return "", "", ""
 
+# Description: browser will store the browsing history in the disk
+# /c/Users/ken/AppData/Local/Temp/tmpXXXX
+def removeWinSpace():
+	path = "C:/Users/ken/AppData/Local/Temp/"
+	folders = list()
+	for dirname in os.listdir(path):
+		if dirname[:3] == "tmp":
+			print(dirname)
+	# 
+
+if __name__=="__main__":
+	removeWinSpace()
