@@ -64,10 +64,13 @@ def getUserProfile(user_id="", screen_name=""):
 	else:
 		return "Error"
 	parameters = []
-	response = twitterreq(url, "GET", parameters)
-	result = response.read().decode("utf-8")
-	jresult = json.loads(result)
-	return jresult
+	try:
+		response = twitterreq(url, "GET", parameters)
+		result = response.read().decode("utf-8")
+		jresult = json.loads(result)
+		return jresult
+	except:
+		return dict()
 
 # Description: get user profile and save it in profile
 def getUsersProfile():
@@ -79,8 +82,12 @@ def getUsersProfile():
 		print(username)
 		time.sleep(5)
 		profile = getUserProfile("",username)
-		with codecs.open(path+"profile/"+username, "w", encoding="utf-8") as fo:
-			fo.write(json.dumps(profile, indent=4, ensure_ascii=False))
+		# file cannot be opened due to wrong name
+		try:
+			with codecs.open(path+"profile/"+username, "w", encoding="utf-8") as fo:
+				fo.write(json.dumps(profile, indent=4, ensure_ascii=False))
+		except:
+			pass
 		fi.write(username+'\n')
 
 
@@ -95,9 +102,12 @@ def getUserFriendship(id_post_writer, user_id="", screen_name=""):
 	else:
 		return "Error"
 	parameters = []
-	response = twitterreq(url, "GET", parameters)
-	result = response.read().decode("utf-8")
-	jresult = json.loads(result)
+	try:
+		response = twitterreq(url, "GET", parameters)
+		result = response.read().decode("utf-8")
+		jresult = json.loads(result)
+	except:
+		return list()
 	try:
 		if jresult["next_cursor"] !=0:
 			id_post_writer.write(screen_name+"\n")
@@ -117,6 +127,7 @@ def getUsersFriendship():
 	id_post_writer = open(path+"friends_over1page", "a")
 	with open(path+relationshipFileName, "a", encoding="utf-8") as fo:
 		for username in usernames[count:]:
+			print(username)
 			time.sleep(60)
 			friends = getUserFriendship(id_post_writer, "", username, )
 			friends = [str(a) for a in friends]
@@ -134,20 +145,24 @@ def getUserTweets(user_id="", screen_name=""):
 	else:
 		return "Error"
 	parameters = []
-	response = twitterreq(url, "GET", parameters)
-	result = response.read().decode("utf-8")
-	jresult = json.loads(result)
-	tweets = tweets + jresult
-	maxId = str(int(jresult[-1]["id_str"])-1)
-	while (len(jresult)>0 and len(tweets)<5000):
-		time.sleep(5)
-		urlNext = url+"&max_id="+maxId
-		response = twitterreq(urlNext, "GET", parameters)
+	try:
+		response = twitterreq(url, "GET", parameters)
 		result = response.read().decode("utf-8")
 		jresult = json.loads(result)
-		if len(jresult) > 0:
-			tweets = tweets + jresult
-			maxId = str(int(jresult[-1]["id_str"])-1)
+	except:
+		return tweets()
+	if type(jresult)==list:
+		tweets = tweets + jresult
+		maxId = str(int(jresult[-1]["id_str"])-1)
+		while (len(jresult)>0 and len(tweets)<5000):
+			time.sleep(5)
+			urlNext = url+"&max_id="+maxId
+			response = twitterreq(urlNext, "GET", parameters)
+			result = response.read().decode("utf-8")
+			jresult = json.loads(result)
+			if len(jresult) > 0:
+				tweets = tweets + jresult
+				maxId = str(int(jresult[-1]["id_str"])-1)
 	return tweets	
 
 # Output: write tweet to username file in wall folder
@@ -159,8 +174,12 @@ def getUsersTweets():
 		print(username)
 		time.sleep(5)
 		tweets = getUserTweets("",username)
-		with codecs.open(path+"wall/"+username, "w", encoding="utf-8") as fo:
-			fo.write(json.dumps(tweets, indent=4, ensure_ascii=False))
+		# file cannot be opened due to wrong name
+		try:
+			with codecs.open(path+"wall/"+username, "w", encoding="utf-8") as fo:
+				fo.write(json.dumps(tweets, indent=4, ensure_ascii=False))
+		except:
+			pass
 		fi.write(username+'\n')
 
 
@@ -169,7 +188,7 @@ def getUsersTweets():
 
 
 
-# Description: 
+# Description: deprecated
 def getUsersData():
 	path = "../data/"
 	sn = "twitter"
@@ -215,7 +234,15 @@ def getUsersData():
 
 def writeUserName():
 	mapping = ut.readCommaLine2List("../data/", "twitterMapping")
-	usernames = [a[1].split("/")[-1].strip() for a in mapping]
+	usernames = list()
+	for m in mapping:
+		url = m[1]
+		username = url.split("/")[-1].strip()
+		if username=="":
+			username = url.split("/")[-2]
+		if username=="#%21" or "twitter.com" in username:
+			continue
+		usernames.append(username)
 	with open(path+"usernames", "w") as fo:
 		for username in usernames:
 			fo.write(username+"\n")
@@ -232,6 +259,6 @@ if __name__ == '__main__':
 	# fetchsamples()
 	# print(getUserFriendship(user_id="17004618"))
 
-	# getUsersFriendship()
+	getUsersFriendship()
 	# getUsersTweets()
-	getUsersProfile()
+	# getUsersProfile()
