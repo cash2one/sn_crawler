@@ -40,6 +40,7 @@ def structData():
 	usersTopicDistri2 = dict()
 	twitterNameId = ut.readJson2Dict(interPath, twitterNameIdFileName)
 	gts = ut.readCommaLine2List(interPath, gtFileName)
+	gts_exist = list()
 	if not os.path.isdir(interPath+sn1):
 		os.makedirs(interPath+sn1+"/profile")
 		os.makedirs(interPath+sn1+"/wall")
@@ -74,7 +75,9 @@ def structData():
 			usersSentimentScore2[uid2] = userSentimentScore2
 			usersTopicDistir1[uid1] = userTopicDistri1
 			usersTopicDistri2[uid2] = userTopicDistri2
-			
+			gts_exist.append(gt)
+	# write the ground truth with complete data users
+	ut.writeList2CommaLine(interPath ,"gt_exist",gts_exist)			
 	# build dictionary and idf
 	writeStatWalls(usersTf1, usersTf2, usersLangDistri1, usersLangDistri2, usersSentimentScore1, usersSentimentScore2, usersTopicDistir1, usersTopicDistri2)
 	e = time.time()

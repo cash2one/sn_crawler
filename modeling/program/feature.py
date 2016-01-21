@@ -61,7 +61,11 @@ def getUsersFeatures():
 	with open(outputPath+featureFileName, "w") as fo:
 		for i in range(len(gts)):
 			print(users_sn1[i])
+			if checkUserData() == False:
+				continue
 			for j in range(len(gts)):
+				if checkUserData(users_sn2[j]) == False:
+					continue
 				if i == j:
 					rank = 1
 				else:
@@ -860,6 +864,9 @@ def temp_spatial_common_place(temp_spatial_set1, temp_spatial_set2):
 '''
 Others
 '''
+
+def checkUserData():
+
 
 def cosine(dict1, dict2):
 	cosine = float()
