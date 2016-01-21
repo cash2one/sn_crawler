@@ -51,10 +51,13 @@ def structData():
 	for gt in gts:
 		uid1 = gt[0]
 		uid2 = gt[1]
-		if sn1 == "twitter":
-			uid1 = twitterNameId[uid1]
-		if sn2 =="twitter":
-			uid2 = twitterNameId[uid2]
+		try:
+			if sn1 == "twitter":
+				uid1 = twitterNameId[uid1]
+			if sn2 =="twitter":
+				uid2 = twitterNameId[uid2]
+		except:
+			continue
 		if not os.path.exists(interPath+sn1+"/profile/"+uid1):
 			# norm profile and posts: google and twitter
 			(userTf1, langDistri1, userSentimentScore1, userTopicDistri1) = structUserData(sn1, uid1)
@@ -82,7 +85,7 @@ def structUserData(sn, uid):
 	# norm profile
 	profile = ut.readJson2Dict(inputPath+sn+"/profile/", uid)
 	newProfile = normProfile(sn, profile)
-	# print("profile:"+interPath+sn+"/profile/"+uid)
+	print("profile:"+interPath+sn+"/profile/"+uid)
 	ut.writeDict2Json(interPath+sn+"/profile/", uid, newProfile)
 
 	# norm wall
@@ -185,7 +188,8 @@ def normTwitterWall(wall):
 		# translate text
 		text_en = ut.translate(text, lang)
 		sentiment = ut.getSentiment(text_en)
-		topic_distri = ut.getTopic(text_en)
+		# topic_distri = ut.getTopic(text_en)
+		topic_distri = dict()
 		tf = ut.wordProcess(text, lang)
 		posts.append(getPost(text, text_en, time, place, urls, lang, sentiment, topic_distri, tf))
 	return posts
@@ -205,7 +209,8 @@ def normGoogleWall(jresult):
 					lang = ut.detectLang(text)
 					text_en = ut.translate(text, lang)
 					sentiment = ut.getSentiment(text_en)
-					topic_distri = ut.getTopic(text_en)
+					# topic_distri = ut.getTopic(text_en)
+					topic_distri = dict()
 					tf = ut.wordProcess(text, lang)
 					posts.append(getPost(text, text_en, time, place, urls, lang, sentiment, topic_distri, tf))
 	return posts
