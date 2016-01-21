@@ -2,14 +2,12 @@ Program
 
 1. Get data from the web
 crawler.py: deprecated
-parseGoogle.py: get simple profile, relationship and social network mapping 
 
-getGoogleData.py: get complete profile and posts 
-getSNUser.py
-getTwitterData.py
-parseTwitter.py
-utility.py
-summary.py: 
+parseGoogle.py: get simple profile, relationship and social network mapping 
+getGoogleData.py: get complete profile and posts, active
+getTwitterData.py: active
+utility.py: utility function
+summary.py: create mapping and statistics
 repair.py: repair the misaligned id for ?
 
 Process:

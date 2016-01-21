@@ -47,8 +47,8 @@ def getGoogleUsersParellel():
 	index = 0
 
 	# multiprocess to get the user info
-	procNum = 6
-	batchNum = 200
+	procNum = 3
+	batchNum = 100
 	# drivers = list()
 	# for i in range(procNum):
 	# 	drivers.append(webdriver.Firefox())

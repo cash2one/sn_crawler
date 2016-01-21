@@ -154,13 +154,13 @@ def getUserTweets(user_id="", screen_name=""):
 	if type(jresult)==list and len(jresult)>0:
 		tweets = tweets + jresult
 		maxId = str(int(jresult[-1]["id_str"])-1)
-		while (len(jresult)>0 and len(tweets)<5000):
+		while (type(jresult) == list and len(jresult)>0 and len(tweets)<5000):
 			time.sleep(5)
 			urlNext = url+"&max_id="+maxId
 			response = twitterreq(urlNext, "GET", parameters)
 			result = response.read().decode("utf-8")
 			jresult = json.loads(result)
-			if len(jresult) > 0:
+			if len(jresult) > 0 and type(jresult)==list:
 				tweets = tweets + jresult
 				maxId = str(int(jresult[-1]["id_str"])-1)
 	else:
@@ -261,6 +261,6 @@ if __name__ == '__main__':
 	# fetchsamples()
 	# print(getUserFriendship(user_id="17004618"))
 
-	getUsersFriendship()
-	# getUsersTweets()
+	# getUsersFriendship()
+	getUsersTweets()
 	# getUsersProfile()
