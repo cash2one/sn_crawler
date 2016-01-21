@@ -83,15 +83,15 @@ def structData():
 def structUserData(sn, uid):
 	print(uid)
 	# norm profile
+	print("profile:"+interPath+sn+"/profile/"+uid)
 	profile = ut.readJson2Dict(inputPath+sn+"/profile/", uid)
 	newProfile = normProfile(sn, profile)
-	# print("profile:"+interPath+sn+"/profile/"+uid)
 	ut.writeDict2Json(interPath+sn+"/profile/", uid, newProfile)
 
 	# norm wall
+	print("wall:"+interPath+sn+"/wall/"+uid)
 	posts = ut.readJson2Dict(inputPath+sn+"/wall/", uid)
 	newPosts = normWall(sn, posts)
-	# print("wall:"+interPath+sn+"/wall/"+uid)
 	ut.writeDict2Json(interPath+sn+"/wall/", uid, newPosts)
 
 	# wall statisitcs
@@ -198,8 +198,9 @@ def normGoogleWall(jresult):
 	posts = list()
 	if type(jresult) == list:
 		for page in jresult:
-			# if page_count >70:
-				# break
+			if page_count >10:
+				# revise the size in the future
+				break
 			for post in page["items"]:
 				time = formatGoogleTime(post["published"])
 				place = formatGooglePlace(post.get("location", ""), 2)

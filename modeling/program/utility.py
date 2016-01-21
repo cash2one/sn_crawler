@@ -220,8 +220,7 @@ def translate(string, lang):
 # Return: sentiment
 # Input: english sentence
 def getSentiment(string):
-	return 0
-	# return {"polarity":0, "subjectivity":0}
+	return {"polarity":0, "subjectivity":0}
 	tb = TextBlob(string)
 	sentiment = {"polarity":tb.sentiment.polarity, "subjectivity":tb.sentiment.subjectivity}
 	return sentiment
