@@ -90,15 +90,10 @@ def structUserData(sn, uid):
 
 	# norm wall
 	print("wall:"+interPath+sn+"/wall/"+uid)
-	a = time.time()
 	posts = ut.readJson2Dict(inputPath+sn+"/wall/", uid)
-	b = time.time()
 	newPosts = normWall(sn, posts)
 	# normwall too long
-	c = time.time()
 	ut.writeDict2Json(interPath+sn+"/wall/", uid, newPosts)
-	d = time.time()
-	print(b-a, c-b, d-c)
 
 	# wall statisitcs
 	langDistri = ut.getDistri([post["lang"] for post in newPosts])
@@ -205,8 +200,9 @@ def normGoogleWall(jresult):
 	page_count = 0
 	if type(jresult) == list:
 		for page in jresult:
-			# if page_count >70:
-				# break
+			if page_count >10:
+				# revise the size in the future
+				break
 			for post in page["items"]:
 				# a = time.time()
 				published_time = formatGoogleTime(post["published"])
