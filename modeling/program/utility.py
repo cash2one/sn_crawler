@@ -64,6 +64,13 @@ def writeDict2Json(path, fileName, result):
 	except:
 		print("write file error")
 
+def writeList2Json(path, fileName, result):
+	try:
+		with open(getFileLocation(path, fileName), "w", encoding="utf8") as fo:
+			fo.write(json.dumps(result, indent=4, ensure_ascii=False))
+	except:
+		print("write file error")	
+
 def writeList2Line(path, fileName, results):
 	if results != None and len(results)>0:
 		with open(getFileLocation(path, fileName), "w") as fo:

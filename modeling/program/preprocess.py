@@ -339,7 +339,7 @@ def writeStatWalls(usersTf1, usersTf2, usersLangDistri1, usersLangDistri2, users
 		idf[term] = math.log(n/df)
 	# write dictionary
 	ut.writeDict2Json(interPath, "idf.json", idf)
-	ut.writeList2Line(interPath, "dictionary.txt", sorted(idf.keys()))
+	ut.writeList2Json(interPath, "dictionary.txt", sorted(idf.keys()))
 	# write unit vector
 	writeTextStat(usersTf1, usersLangDistri1, idf, sn1, usersSentimentScore1, usersTopicDistri1)
 	writeTextStat(usersTf2, usersLangDistri2, idf, sn2, usersSentimentScore2, usersTopicDistri2)
