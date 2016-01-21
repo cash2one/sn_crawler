@@ -21,16 +21,6 @@ def getUsers():
 	# get next page token by 
 	print(json)
 
-def getUserProfile(userid):
-	try:
-		url = apiPrefix+userid+key
-		result = urllib.request.urlopen(url).read()
-		profile = json.loads(result.decode("utf-8"))
-		return profile
-	except:
-		return {"status":"error"}
-
-
 def getUsersProfile():
 	print("get users profile")
 	userids = ut.readLine2List(path, "userids")
@@ -43,6 +33,29 @@ def getUsersProfile():
 			fo.write(json.dumps(profile, indent=4, ensure_ascii=False))
 		fi.write(userid+'\n')
 
+def getUserProfile(userid):
+	try:
+		url = apiPrefix+userid+key
+		result = urllib.request.urlopen(url).read()
+		profile = json.loads(result.decode("utf-8"))
+		return profile
+	except:
+		return {"status":"error"}
+
+def getUsersPost():
+	print("get users post")
+	userids = ut.readLine2List(path, "userids")
+	useridsCrawled = ut.readLine2List(path, idPostFileName)
+	# fi = open(path+idPostFileName, 'a')
+	# fi.write("start")
+	for userid in userids[len(useridsCrawled):]:
+		# fi.write(userid+'\n')
+		with open(path+idPostFileName, "a") as fi:
+			fi.write(userid+"\n")
+		print(userid)
+		posts = getUserPost(userid)
+		with codecs.open(path+"wall/"+userid, "w", encoding="utf-8") as fo:
+			fo.write(json.dumps(posts, indent=4, ensure_ascii=False))
 
 def getUserPost(userid):
 	try:
@@ -63,22 +76,6 @@ def getUserPost(userid):
 	except:
 		# print(len(posts))
 		return posts
-
-
-def getUsersPost():
-	print("get users post")
-	userids = ut.readLine2List(path, "userids")
-	useridsCrawled = ut.readLine2List(path, idPostFileName)
-	# fi = open(path+idPostFileName, 'a')
-	# fi.write("start")
-	for userid in userids[len(useridsCrawled):]:
-		# fi.write(userid+'\n')
-		with open(path+idPostFileName, "a") as fi:
-			fi.write(userid+"\n")
-		print(userid)
-		posts = getUserPost(userid)
-		with codecs.open(path+"wall/"+userid, "w", encoding="utf-8") as fo:
-			fo.write(json.dumps(posts, indent=4, ensure_ascii=False))
 
 
 def writeUserIds():

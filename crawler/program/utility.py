@@ -26,7 +26,7 @@ def readCommaLine2List(path, fileName):
 	try:
 		with open(getFileLocation(path, fileName), "r") as fi:
 			for line in fi:
-				results.append(line.split(","))
+				results.append(line.strip().split(","))
 		return results
 	except:
 		return results

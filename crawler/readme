@@ -1,13 +1,55 @@
 Program
 
 1. Get data from the web
-crawler.py
-getGoogleData.py
+crawler.py: deprecated
+parseGoogle.py: get simple profile, relationship and social network mapping 
+
+getGoogleData.py: get complete profile and posts 
 getSNUser.py
 getTwitterData.py
-parseGoogle.py
 parseTwitter.py
 utility.py
+summary.py: 
+repair.py: repair the misaligned id for ?
+
+Process:
+get google profile data, relationship file, social network mapping (sn_file) 
+=> generate userids
+=> twitter mapping 
+=> get google plus posts, twitter posts, relationship, profiles
+
+*Data:
+google
+	profile/: person
+	wall/: person
+	allid_file: expanding id file
+	id_post_file: posts recorded id file
+	id_profile_file: profile recorded id file
+
+(parseGoogle.py)
+	id_file: parsed_id
+	id_record_file: parsed_id possesing profile and its status of sn mapping and relationship (boolean)
+	sn_file: parsed_id possesing profile and its social networks mapping
+	profile_file: parsed_id possesing profile and its simple profile file
+	profile_revised_row: some profile file has strange break line
+	relationship_file: parsed_id possesing profile and its links
+
+	userids: possesing mapping account id (google plus, twitter mapping)
+
+twitter
+	profile/
+	wall/
+	allid_file
+	friend_over1page: some people with too many friends didn't crawl all
+	id_post_file: record the posts 
+	id_profile_file
+	id_record_file
+	relationship_file
+	usernames
+
+fbMapping
+twitterMapping
+youtubeMapping
 
 2. Repair the data parse error from Google plus
 repair.py

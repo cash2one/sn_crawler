@@ -104,7 +104,6 @@ def getGoogleUsersParellel():
 					sn_writer.write(uid+','+','.join(sns)+'\n')
 					profile_writer.write(uid+',\t'+',\t'.join(infos)+'\n')
 					rela_writer.write(uid+' '+','.join(friends)+'\n')
-					id_writer.write(uid+"\n")
 					id_record_writer.write(uid)
 					if sn_bool:
 						id_record_writer.write(","+str(1))
@@ -118,9 +117,7 @@ def getGoogleUsersParellel():
 					addFriend(g, friends, allids, allid_writer, nextids)
 					g.node[uid]["status"] = 1
 					ids.append(uid)
-				else:
-					print("no info")
-					id_writer.write(uid+"\n")
+				id_writer.write(uid+"\n")
 		# lock.release()
 		ut.removeWinSpace()
 		index = index + procNum*batchNum
