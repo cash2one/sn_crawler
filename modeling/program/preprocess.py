@@ -51,10 +51,13 @@ def structData():
 	for gt in gts:
 		uid1 = gt[0]
 		uid2 = gt[1]
-		if sn1 == "twitter":
-			uid1 = twitterNameId[uid1]
-		if sn2 =="twitter":
-			uid2 = twitterNameId[uid2]
+		try:
+			if sn1 == "twitter":
+				uid1 = twitterNameId[uid1]
+			if sn2 =="twitter":
+				uid2 = twitterNameId[uid2]
+		except:
+			continue
 		if not os.path.exists(interPath+sn1+"/profile/"+uid1):
 			# norm profile and posts: google and twitter
 			(userTf1, langDistri1, userSentimentScore1, userTopicDistri1) = structUserData(sn1, uid1)
