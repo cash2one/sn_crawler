@@ -1,1 +1,4 @@
 crawler/data/
+modeling/data/*
+modeling/intermediate/*
+modeing/output/*
