@@ -196,13 +196,14 @@ def normTwitterWall(wall):
 
 def normGoogleWall(jresult):
 	posts = list()
+	page_count = 0
 	if type(jresult) == list:
 		for page in jresult:
-			if page_count >10:
+			if page_count > 10:
 				# revise the size in the future
 				break
 			for post in page["items"]:
-				time = formatGoogleTime(post["published"])
+				published_time = formatGoogleTime(post["published"])
 				place = formatGooglePlace(post.get("location", ""), 2)
 				info = post.get("object", "")
 				if info != "":
