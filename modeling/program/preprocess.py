@@ -60,8 +60,12 @@ def structData():
 			continue
 		if not os.path.exists(interPath+sn1+"/profile/"+uid1):
 			# norm profile and posts: google and twitter
-			(userTf1, langDistri1, userSentimentScore1, userTopicDistri1) = structUserData(sn1, uid1)
-			(userTf2, langDistri2, userSentimentScore2, userTopicDistri2) = structUserData(sn2, uid2)
+			(userDataBool1 ,userTf1, langDistri1, userSentimentScore1, userTopicDistri1) = structUserData(sn1, uid1)
+			if userDataBool1 == False:
+				continue
+			(userDataBool2, userTf2, langDistri2, userSentimentScore2, userTopicDistri2) = structUserData(sn2, uid2)
+			if userDataBool1==False or userDataBool2 == False:
+				continue
 			usersTf1[uid1] = userTf1 
 			usersTf2[uid2] = userTf2
 			usersLangDistri1[uid1] = langDistri1
@@ -83,15 +87,22 @@ def structData():
 def structUserData(sn, uid):
 	print(uid)
 	# norm profile
-	print("profile:"+interPath+sn+"/profile/"+uid)
 	profile = ut.readJson2Dict(inputPath+sn+"/profile/", uid)
-	newProfile = normProfile(sn, profile)
-	ut.writeDict2Json(interPath+sn+"/profile/", uid, newProfile)
-
-	# norm wall
-	print("wall:"+interPath+sn+"/wall/"+uid)
 	posts = ut.readJson2Dict(inputPath+sn+"/wall/", uid)
+
+	if sn == "google":
+		if profile.get("status", 0) == "error" or type(posts) == dict or len(posts)==0:
+			return (False, None, None, None, None)
+	else:
+		if type(profile.get("errors", 0))==list or len(posts)==0:
+			return (False, None, None, None, None)
+
+	print("profile:"+interPath+sn+"/profile/"+uid)
+	newProfile = normProfile(sn, profile)
+	print("wall:"+interPath+sn+"/wall/"+uid)
 	newPosts = normWall(sn, posts)
+
+	ut.writeDict2Json(interPath+sn+"/profile/", uid, newProfile)
 	ut.writeDict2Json(interPath+sn+"/wall/", uid, newPosts)
 
 	# wall statisitcs
@@ -106,7 +117,7 @@ def structUserData(sn, uid):
 	# tf
 	tfs = [post["tf"] for post in newPosts]
 	userTf = ut.mergeDict(tfs)
-	return (userTf, langDistri, sentiment_score, userTopicDistri)
+	return (True ,userTf, langDistri, sentiment_score, userTopicDistri)
 
 
 '''
@@ -135,7 +146,7 @@ def normGoogleProfile(jresult):
 	# placesLived(value, primary), name(givenName, familyName), displayName, circledByCount, occupation, aboutMe, organizations(name, title, endDate, startDate), gender
 	profile = dict()
 	profile["name"] = (jresult["name"]["givenName"]+" "+jresult["name"]["familyName"]).lower().strip()
-	profile["displayName"] = jresult["displayName"].lower().strip()
+	profile["displayName"] = jresult.get("displayName","").lower().strip()
 	profile["placesLived"] = jresult.get("placesLived", list())
 	profile["circledByCount"] = jresult.get("circledByCount", 0)
 	profile["tags"] = getGoogleTag(jresult)
