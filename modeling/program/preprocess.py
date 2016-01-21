@@ -85,7 +85,7 @@ def structUserData(sn, uid):
 	# norm profile
 	profile = ut.readJson2Dict(inputPath+sn+"/profile/", uid)
 	newProfile = normProfile(sn, profile)
-	# print("profile:"+interPath+sn+"/profile/"+uid)
+	print("profile:"+interPath+sn+"/profile/"+uid)
 	ut.writeDict2Json(interPath+sn+"/profile/", uid, newProfile)
 
 	# norm wall
@@ -188,7 +188,8 @@ def normTwitterWall(wall):
 		# translate text
 		text_en = ut.translate(text, lang)
 		sentiment = ut.getSentiment(text_en)
-		topic_distri = ut.getTopic(text_en)
+		# topic_distri = ut.getTopic(text_en)
+		topic_distri = dict()
 		tf = ut.wordProcess(text, lang)
 		posts.append(getPost(text, text_en, time, place, urls, lang, sentiment, topic_distri, tf))
 	return posts
@@ -208,7 +209,8 @@ def normGoogleWall(jresult):
 					lang = ut.detectLang(text)
 					text_en = ut.translate(text, lang)
 					sentiment = ut.getSentiment(text_en)
-					topic_distri = ut.getTopic(text_en)
+					# topic_distri = ut.getTopic(text_en)
+					topic_distri = dict()
 					tf = ut.wordProcess(text, lang)
 					posts.append(getPost(text, text_en, time, place, urls, lang, sentiment, topic_distri, tf))
 	return posts
