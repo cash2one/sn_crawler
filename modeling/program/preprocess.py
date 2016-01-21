@@ -58,7 +58,7 @@ def structData():
 				uid2 = twitterNameId[uid2]
 		except:
 			continue
-		if not os.path.exists(interPath+sn1+"/wall/"+uid1):
+		if not os.path.exists(interPath+sn1+"/profile/"+uid1):
 			# norm profile and posts: google and twitter
 			(userTf1, langDistri1, userSentimentScore1, userTopicDistri1) = structUserData(sn1, uid1)
 			(userTf2, langDistri2, userSentimentScore2, userTopicDistri2) = structUserData(sn2, uid2)
@@ -83,22 +83,16 @@ def structData():
 def structUserData(sn, uid):
 	print(uid)
 	# norm profile
-	print("profile:"+interPath+sn+"/profile/"+uid)
 	profile = ut.readJson2Dict(inputPath+sn+"/profile/", uid)
 	newProfile = normProfile(sn, profile)
+	# print("profile:"+interPath+sn+"/profile/"+uid)
 	ut.writeDict2Json(interPath+sn+"/profile/", uid, newProfile)
 
 	# norm wall
-	print("wall:"+interPath+sn+"/wall/"+uid)
-	a = time.time()
 	posts = ut.readJson2Dict(inputPath+sn+"/wall/", uid)
-	b = time.time()
 	newPosts = normWall(sn, posts)
-	# normwall too long
-	c = time.time()
+	# print("wall:"+interPath+sn+"/wall/"+uid)
 	ut.writeDict2Json(interPath+sn+"/wall/", uid, newPosts)
-	d = time.time()
-	print(b-a, c-b, d-c)
 
 	# wall statisitcs
 	langDistri = ut.getDistri([post["lang"] for post in newPosts])
@@ -194,8 +188,7 @@ def normTwitterWall(wall):
 		# translate text
 		text_en = ut.translate(text, lang)
 		sentiment = ut.getSentiment(text_en)
-		# topic_distri = ut.getTopic(text_en)
-		topic_distri = dict()
+		topic_distri = ut.getTopic(text_en)
 		tf = ut.wordProcess(text, lang)
 		posts.append(getPost(text, text_en, time, place, urls, lang, sentiment, topic_distri, tf))
 	return posts
@@ -203,37 +196,21 @@ def normTwitterWall(wall):
 
 def normGoogleWall(jresult):
 	posts = list()
-	page_count = 0
 	if type(jresult) == list:
 		for page in jresult:
-			if page_count >70:
-				break
 			for post in page["items"]:
-				# a = time.time()
-				published_time = formatGoogleTime(post["published"])
+				time = formatGoogleTime(post["published"])
 				place = formatGooglePlace(post.get("location", ""), 2)
 				info = post.get("object", "")
 				if info != "":
 					text = info.get("content", "")
 					urls = getGoogleUrls(info.get("attachments", ""))
-					a = time.time()
 					lang = ut.detectLang(text)
-					b = time.time()
 					text_en = ut.translate(text, lang)
-					c= time.time()
 					sentiment = ut.getSentiment(text_en)
-					d= time.time()
-					# topic_distri = ut.getTopic(text_en)
-					topic_distri = dict()
+					topic_distri = ut.getTopic(text_en)
 					tf = ut.wordProcess(text, lang)
-					e= time.time()
-					print(e-d, d-c, c-b, b-a)
-					# b = time.time()
-					# print("time info", b-a)
-					posts.append(getPost(text, text_en, published_time, place, urls, lang, sentiment, topic_distri, tf))
-					# c = time.time()
-					# print("time append",c-b)
-			page_count+=1
+					posts.append(getPost(text, text_en, time, place, urls, lang, sentiment, topic_distri, tf))
 	return posts
 
 
