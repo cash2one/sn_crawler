@@ -198,6 +198,8 @@ def normGoogleWall(jresult):
 	posts = list()
 	if type(jresult) == list:
 		for page in jresult:
+			# if page_count >70:
+				# break
 			for post in page["items"]:
 				time = formatGoogleTime(post["published"])
 				place = formatGooglePlace(post.get("location", ""), 2)
@@ -205,12 +207,19 @@ def normGoogleWall(jresult):
 				if info != "":
 					text = info.get("content", "")
 					urls = getGoogleUrls(info.get("attachments", ""))
+					# a = time.time()
 					lang = ut.detectLang(text)
+					# b = time.time()
 					text_en = ut.translate(text, lang)
+					# c= time.time()
 					sentiment = ut.getSentiment(text_en)
+					# d= time.time()
 					topic_distri = ut.getTopic(text_en)
 					tf = ut.wordProcess(text, lang)
-					posts.append(getPost(text, text_en, time, place, urls, lang, sentiment, topic_distri, tf))
+					# e= time.time()
+					# print(b-a, c-b, d-c, e-d)
+					posts.append(getPost(text, text_en, published_time, place, urls, lang, sentiment, topic_distri, tf))
+			page_count+=1
 	return posts
 
 

@@ -208,6 +208,7 @@ def wordProcess(sentence, lang):
 # Input: text and language
 # Return: translate the text to english
 def translate(string, lang):
+	return ""
 	tb = TextBlob(string)
 	if lang != "en":
 		try:
@@ -219,11 +220,17 @@ def translate(string, lang):
 # Return: sentiment
 # Input: english sentence
 def getSentiment(string):
+	return 0
+	# return {"polarity":0, "subjectivity":0}
 	tb = TextBlob(string)
 	sentiment = {"polarity":tb.sentiment.polarity, "subjectivity":tb.sentiment.subjectivity}
 	return sentiment
 
+# def getSentiment2(string, lang):
+
+
 def getTopic(string):
+	return dict()
 	topic_distri = dict()
 	if string=="":
 		return topic_distri
