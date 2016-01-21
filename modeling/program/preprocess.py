@@ -137,7 +137,7 @@ def normGoogleProfile(jresult):
 	profile = dict()
 	profile["name"] = (jresult["name"]["givenName"]+" "+jresult["name"]["familyName"]).lower().strip()
 	profile["displayName"] = jresult["displayName"].lower().strip()
-	profile["placesLived"] = jresult["placesLived"]
+	profile["placesLived"] = jresult.get("placesLived", list())
 	profile["circledByCount"] = jresult.get("circledByCount", 0)
 	profile["tags"] = getGoogleTag(jresult)
 	profile["nameLang"] = ut.detectLang(profile["name"])
