@@ -13,7 +13,7 @@ import name_tools
 import langid
 import langdetect
 from textblob import TextBlob
-import scipy
+# import scipy
 
 rule = re.compile("[`~!@#$%^&*()-_=+{}|\"\' ]")
 langs_not_western = ["zh", "ja", "ko"]
