@@ -27,6 +27,23 @@ def initFolder(snFolder):
 	if not os.path.isdir(snFolder+"wall"):
 		os.mkdir(snFolder+"wall")
 
+def readRankFeature(path, filename):
+	instances = list()
+	with open(getFileLocation(path, filename), "r") as fi:
+		for line in fi:
+			instance = dict()
+			data = line.strip().split(" ")
+			instance["gt"] = data[0]
+			instance["qid"] = data[1].split(":")
+			for feature in data[2:-2]:
+				tmp = feature.split(":")
+				instance[tmp[0]] = tmp[1]
+			instances.append(instance)
+	print(len(instances))
+	return instances
+
+
+
 # Input: file location
 # Output: list
 def readLine2List(path, fileName):
