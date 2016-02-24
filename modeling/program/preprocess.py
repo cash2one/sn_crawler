@@ -16,10 +16,13 @@ interPath = "../intermediate/"
 outputPath = '../output/'
 
 mappingFileName = "twitterMapping"
-gtFileName = "gt"
+mappingLossFileName = "gt_loss"
+gtLooseFileName = "gt_loose"
+gtStrictFileName = "gt_strict"
 sn1 = "google"
 sn2 = "twitter"
 twitterNameIdFileName = "twitterNameId"
+twitterIdNameFileName = "twitterIdName"
 
 stopwords = sw.words("english")
 '''
@@ -38,9 +41,10 @@ def structData():
 	usersSentimentScore2 = dict()
 	usersTopicDistir1 = dict()
 	usersTopicDistri2 = dict()
-	twitterNameId = ut.readJson2Dict(interPath, twitterNameIdFileName)
-	gts = ut.readCommaLine2List(interPath, gtFileName)
-	gts_exist = list()
+	twitterIdName = ut.readJson2Dict(interPath, twitterIdNameFileName)
+	gts_loose = ut.readCommaLine2List(interPath, gtLooseFileName)
+	gts_strict = ut.readCommaLine2List(interPath, gtStrictFileName)
+	gts = gts_strict
 	if not os.path.isdir(interPath+sn1):
 		os.makedirs(interPath+sn1+"/profile")
 		os.makedirs(interPath+sn1+"/wall")
@@ -54,30 +58,23 @@ def structData():
 		uid2 = gt[1]
 		try:
 			if sn1 == "twitter":
-				uid1 = twitterNameId[uid1]
+				uid1 = twitterIdName[uid1]
 			if sn2 =="twitter":
-				uid2 = twitterNameId[uid2]
+				uid2 = twitterIdName[uid2]
 		except:
 			continue
-		if not os.path.exists(interPath+sn1+"/profile/"+uid1):
+		# if not os.path.exists(interPath+sn1+"/profile/"+uid1):
 			# norm profile and posts: google and twitter
-			(userDataBool1 ,userTf1, langDistri1, userSentimentScore1, userTopicDistri1) = structUserData(sn1, uid1)
-			if userDataBool1 == False:
-				continue
-			(userDataBool2, userTf2, langDistri2, userSentimentScore2, userTopicDistri2) = structUserData(sn2, uid2)
-			if userDataBool1==False or userDataBool2 == False:
-				continue
-			usersTf1[uid1] = userTf1 
-			usersTf2[uid2] = userTf2
-			usersLangDistri1[uid1] = langDistri1
-			usersLangDistri2[uid2] = langDistri2
-			usersSentimentScore1[uid1] = userSentimentScore1
-			usersSentimentScore2[uid2] = userSentimentScore2
-			usersTopicDistir1[uid1] = userTopicDistri1
-			usersTopicDistri2[uid2] = userTopicDistri2
-			gts_exist.append(gt)
-	# write the ground truth with complete data users
-	ut.writeList2CommaLine(interPath ,"gt_exist",gts_exist)			
+		(userTf1, langDistri1, userSentimentScore1, userTopicDistri1) = structUserData(sn1, uid1)
+		(userTf2, langDistri2, userSentimentScore2, userTopicDistri2) = structUserData(sn2, uid2)
+		usersTf1[uid1] = userTf1 
+		usersTf2[uid2] = userTf2
+		usersLangDistri1[uid1] = langDistri1
+		usersLangDistri2[uid2] = langDistri2
+		usersSentimentScore1[uid1] = userSentimentScore1
+		usersSentimentScore2[uid2] = userSentimentScore2
+		usersTopicDistir1[uid1] = userTopicDistri1
+		usersTopicDistri2[uid2] = userTopicDistri2
 	# build dictionary and idf
 	writeStatWalls(usersTf1, usersTf2, usersLangDistri1, usersLangDistri2, usersSentimentScore1, usersSentimentScore2, usersTopicDistir1, usersTopicDistri2)
 	e = time.time()
@@ -92,13 +89,6 @@ def structUserData(sn, uid):
 	# norm profile
 	profile = ut.readJson2Dict(inputPath+sn+"/profile/", uid)
 	posts = ut.readJson2Dict(inputPath+sn+"/wall/", uid)
-
-	if sn == "google":
-		if profile.get("status", 0) == "error" or type(posts) == dict or len(posts)==0:
-			return (False, None, None, None, None)
-	else:
-		if type(profile.get("errors", 0))==list or len(posts)==0:
-			return (False, None, None, None, None)
 
 	print("profile:"+interPath+sn+"/profile/"+uid)
 	newProfile = normProfile(sn, profile)
@@ -120,7 +110,7 @@ def structUserData(sn, uid):
 	# tf
 	tfs = [post["tf"] for post in newPosts]
 	userTf = ut.mergeDict(tfs)
-	return (True ,userTf, langDistri, sentiment_score, userTopicDistri)
+	return (userTf, langDistri, sentiment_score, userTopicDistri)
 
 
 '''
@@ -374,61 +364,97 @@ def writeTextStat(usersTf, usersLangDistri, idf, sn, usersSentimentScore, usersT
 		ut.writeDict2Json(interPath+sn+"/text",user,result)
 
 
-
+# Description: get the mapping candidates for crawl google and twitter profiles and walls
+def writeMappingCandidates():
+	mappings = ut.readCommaLine2List(inputPath, "twitterMapping")
+	candidates_google = list()
+	candidates_twitter = list()
+	for mapping in mappings:
+		google_id = mapping[0]
+		twitter_url = mapping[1]
+		twitter_name = getTwitterUsername(twitter_url)
+		if twitter_name != "":
+			candidates_google.append(google_id)
+			candidates_twitter.append(twitter_name)
+	ut.writeList2Line(inputPath, "google/ids_mapping", candidates_google) 
+	ut.writeList2Line(inputPath, "twitter/names_mapping", candidates_twitter)
 
 
 # Input: google social network mapping
-# Output: youtube mapping file, facebook mapping file, twitter mapping file
-# Description: revise ground truth by twitter profile and google plus profile
-def reviseGroundTruth():
+# Output: gt(google, twitter mapping), and twitternameid, twitteridname (twitter name id mapping file)
+# Description: Get the ground truth mapping of loose and strict mode
+def getGroundTruth():
 	mapping = ut.readCommaLine2List(inputPath, mappingFileName)
-	fmapping = list()
+	mappingIdLoose = list()
+	mappingIdStrict = list()
 	twitterNameId = dict()
+	twitterIdName = dict()
+	mappingLoss = list()
 	for m in mapping:
 		twitterUrl = m[1]
-		twitterName = twitterUrl.split("/")[-1].strip()
+		twitterName = getTwitterUsername(twitterUrl)
 		googleId = m[0]
-		if twitterName=="":
-			twitterName = twitterUrl.split("/")[-2]
-		if twitterName=="#%21" or "twitter.com" in twitterName or "twitter" == twitterName:
+
+		if twitterName == "":
 			continue
+		(google_profile_bool, google_posts_bool) = checkGoogleData(googleId)
+		(twitter_profile_bool, twitter_posts_bool, twitter_profile) = checkTwitterData(twitterName)
 
-		# check if the google plus id is a person
+		if google_profile_bool == False or twitter_profile_bool == False:
+			mappingLoss.append(m)
+		else:
+			twitterId = twitter_profile.get("id_str", 0)
+			if google_posts_bool == False or twitter_posts_bool == False:
+				mappingIdLoose.append([googleId, twitterId])
+			else:
+				mappingIdLoose.append([googleId, twitterId])
+				mappingIdStrict.append([googleId, twitterId])
+			twitterIdName[twitterId] = twitterName
+			twitterNameId[twitterName] = twitterId
+	ut.writeList2CommaLine(interPath, gtLooseFileName, mappingIdLoose)
+	ut.writeList2CommaLine(interPath, gtStrictFileName, mappingIdStrict)
+	ut.writeDict2Json(interPath, twitterNameIdFileName, twitterNameId)
+	ut.writeDict2Json(interPath, twitterIdNameFileName, twitterIdName)
+	ut.writeList2CommaLine(interPath, mappingLossFileName, mappingLoss)
 
-		# read twitter profile file to check
-		# try:
-		# 	location = "../data/google/profile/"+googleId
-		# 	with open(location, "r") as fi:
-		# 		jresult = json.loads(fi.read())
-		# 		if jresult["objectType"]!="person":
-		# 			print(googleId)
-		# except:
-		# 	pass
+def getTwitterUsername(url):
+	username = url.split("/")[-1].strip()
+	if username=="":
+		username = url.split("/")[-2]
+	if username=="#%21" or "twitter.com" in username:
+		username = ""
+	return username
 
-		# check if the twitter name exist
-		try:
-			location = "../data/twitter/profile/"+twitterName
-			with open(location, "r") as fi:
-				jresult = json.loads(fi.read())
-				id_str = jresult.get("id_str", 0)
-				if id_str != 0:
-					fmapping.append([m[0], id_str])
-					twitterNameId[id_str] = twitterName
-				else:
-					print(jresult)
-		except:
-			pass
-	ut.writeList2CommaLine(interPath, "gt", fmapping)
-	ut.writeDict2Json(interPath, "twitterNameId", twitterNameId)
+def checkGoogleData(uid):
+	profile = ut.readJson2Dict(inputPath+"google/profile/", uid)
+	posts = ut.readJson2Dict(inputPath+"google/wall/", uid)
+	profile_bool = True
+	posts_bool = True
+	if profile.get("status", 0) == "error" or len(profile)==0:
+		profile_bool = False
+	if type(posts) == dict or len(posts)==0:
+		posts_bool = False
+	return (profile_bool, posts_bool)
 
+def checkTwitterData(uname):
+	profile = ut.readJson2Dict(inputPath+"twitter/profile/", uname)
+	posts = ut.readJson2Dict(inputPath+"twitter/wall/", uname)
+	profile_bool = True
+	posts_bool = True
+	if len(profile)==0 or type(profile.get("errors", 0))==list:
+		profile_bool = False
+	if len(posts)==0:
+		posts_bool = False
+	return (profile_bool, posts_bool, profile)
 
-def reviseTwitterNameId():
+# Input:
+# Output:
+# Description: revise user of the relationship_file by twitterId
+def reviseTwitterRelationship():
 	names = list()
-	# read name id mapping
 	twitterNameId = ut.readJson2Dict(interPath, "twitterNameId")
-	# replace the name by id and write file
-	with open(inputPath+"twitter/relationship_file_revise", "w") as fo:
-		with open(inputPath+"twitter/relationship_file", "r") as fi:
+	with open(interPath+"twitter/relationship_file_revise", "w") as fo:
+		with open(interPath+"twitter/relationship_file", "r") as fi:
 			for line in fi:
 				ids = line.split(" ")
 				user = ids[0]
@@ -443,9 +469,9 @@ def reviseTwitterNameId():
 
 if __name__ == "__main__":
 	# revise the ground truth
-	# reviseGroundTruth()
+	# getGroundTruth()
 
 	# revise twitter relationship file for id
-	# reviseTwitterNameId()
+	# reviseTwitterRelationship()
 
 	structData()

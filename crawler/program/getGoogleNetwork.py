@@ -22,28 +22,38 @@ snList = ["youtube", "facebook", "twitter", "linkedin", "flickr", "instagram", "
 path = "../data/"
 root = "109675028280981323746"
 snFolder = path+"google/"
+idsErrorFileName = "ids_error"
+idsSawFileName = "ids_saw"
+idsVisitedFileName = "ids_visited"
+idsRecordedFileName = "ids_recorded"
 
+'''
+Main
+'''
+'''
+Parallel 
+'''
 # Description: parallel version to parse data
 def getGoogleUsersParellel():
-	ids = ut.readLine2List(snFolder, "id_file")
-	allids = ut.readLine2List(snFolder, "allid_file")
-	# nextids = allids[len(ids)+1:]
-	nextids = list(set(allids)-set(ids))
+	ids_visited = ut.readLine2List(snFolder, idsVisitedFileName)
+	ids_saw = ut.readLine2List(snFolder, idsSawFileName)
+	# nextids = ids_saw[len(ids)+1:]
+	nextids = list(set(ids_saw)-set(ids_visited))
 
 	# write file
-	id_error_writer = open(snFolder+"id_error_writer", "a")
-	id_writer = open(snFolder+"id_file", 'a', encoding="utf8")
-	allid_writer = open(snFolder+"allid_file", 'a', encoding="utf8")
-	id_record_writer = open(snFolder+"id_record_file", 'a', encoding="utf8")
+	ids_error_writer = open(snFolder+idsErrorFileName, "a")
+	ids_visited_writer = open(snFolder+idsVisitedFileName, 'a', encoding="utf8")
+	ids_saw_writer = open(snFolder+idsSawFileName, 'a', encoding="utf8")
+	ids_recorded_writer = open(snFolder+idsRecordedFileName, 'a', encoding="utf8")
 
-	sn_writer = open(snFolder+"sn_file", 'a', encoding="utf8")
+	sn_writer = open("sn_file", 'a', encoding="utf8")
 	profile_writer = open(snFolder+"profile_file", 'a', encoding="utf8")
 	rela_writer = open(snFolder+"relationship_file", 'a', encoding="utf8")
 
-	# init the next users and record them in the graph
-	if len(allids) == 0:
-		allids.append(root)
-	g = initGraph(allids, ids)
+	# initialize graph
+	if len(ids_saw) == 0:
+		ids_saw.append(root)
+	g = initGraph(ids_saw, ids_visited)
 	index = 0
 
 	# multiprocess to get the user info
@@ -59,12 +69,11 @@ def getGoogleUsersParellel():
 		# q = queue.Queue()
 		roundNum = procNum * batchNum
 		procs = list()
-		# count the process users
+
 		if index+roundNum < len(nextids):
 			for i in range(procNum):
 				batchids = nextids[index+i*batchNum:index+((i+1)*batchNum)]
 				p = mp.Process(target=worker_p, args=(batchids,q))
-				# p = th.Thread(target=worker, args=(batchids,q, drivers[i]))
 				p.start()
 				procs.append(p)
 			for i in range(roundNum):
@@ -74,9 +83,9 @@ def getGoogleUsersParellel():
 		else:
 			batchids = nextids[index:]
 			p = mp.Process(target=worker_p, args=(batchids,q))
-			# p = th.Thread(target=worker, args=(batchids,q, drivers[0]))
 			p.start()
-			result += q.get()
+			for i in range(len(batchids)):
+				result += q.get()
 			p.join()
 		# process back data 
 		# lock.acquire()
@@ -95,37 +104,35 @@ def getGoogleUsersParellel():
 				continue
 			elif status==False:
 				# print("cannot read be parsed")
-				id_error_writer.write(uid+"\n")
+				ids_error_writer.write(uid+"\n")
 			else:
 				# print("new user")
 				if infos != None:
-					# writeUser2File(uid, sns, sn_bool, infos, friends, friend_bool, sn_writer, profile_writer, rela_writer, id_writer, id_record_writer)
+					# writeUser2File(uid, sns, sn_bool, infos, friends, friend_bool, sn_writer, profile_writer, rela_writer, ids_visited_writer, ids_recorded_writer)
 					# print("start to write:"+uid)
 					sn_writer.write(uid+','+','.join(sns)+'\n')
 					profile_writer.write(uid+',\t'+',\t'.join(infos)+'\n')
 					rela_writer.write(uid+' '+','.join(friends)+'\n')
-					id_record_writer.write(uid)
+					ids_recorded_writer.write(uid)
 					if sn_bool:
-						id_record_writer.write(","+str(1))
+						ids_recorded_writer.write(","+str(1))
 					else:
-						id_record_writer.write(","+str(0))
+						ids_recorded_writer.write(","+str(0))
 					if friend_bool:
-						id_record_writer.write(","+str(1)+"\n")
+						ids_recorded_writer.write(","+str(1)+"\n")
 					else:
-						id_record_writer.write(","+str(0)+'\n')
+						ids_recorded_writer.write(","+str(0)+'\n')
 					# print("finish write")
-					addFriend(g, friends, allids, allid_writer, nextids)
+					addFriend(g, friends, ids_saw, ids_saw_writer, nextids)
 					g.node[uid]["status"] = 1
-					ids.append(uid)
-				id_writer.write(uid+"\n")
+					ids_visited.append(uid)
+				ids_visited_writer.write(uid+"\n")
 		# lock.release()
 		ut.removeWinSpace()
 		index = index + procNum*batchNum
 	# for i in range(procNum):
 	# 	drivers[i].close()
 
-
-# write the worker here
 def worker_p(batchids, q):
 	# init driver
 	driver = webdriver.Firefox()
@@ -145,27 +152,6 @@ def worker_p(batchids, q):
 				error = error+1
 	driver.close()
 
-# write the worker here
-def worker(batchids, q, driver):
-	# init driver
-	# driver = webdriver.Firefox()
-	for uid in batchids:
-		error = 0
-		print(uid)
-		while True:
-			try:
-				if error == 5:
-					q.put([{"id": uid, "status": False, "infos": None, "friends": None,"friend_bool": None, "sns": None, "sn_bool": None}])
-					break
-				else:
-					output = parseGoogleUserParellel(driver, uid)
-					q.put([output])
-					break
-			except:
-				error = error+1
-	# driver.close()
-
-
 # Input: driver, user id
 # Output: 
 # Return: dictionary
@@ -182,23 +168,26 @@ def parseGoogleUserParellel(driver, uid):
 		return {"id": uid, "status": True, "infos": infos, "friends": friends, "friend_bool": friend_bool, "sns": sns, "sn_bool": sn_bool}
 	else:
 		return {"id": uid, "status": True, "infos": None, "friends": None, "friend_bool": None, "sns": None, "sn_bool": None}
-
+'''
+Single thread version
+Deprecated
+'''
 # Description: single process version
 def getGoogleUsers(sn = "google"):
 	driver = getDriver()
 	loginGoogle(driver)
 	# init variable
 	snFolder = path+sn+"/"
-	ids = ut.readLine2List(snFolder, "id_file")
-	allids = ut.readLine2List(snFolder, "allid_file")
-	nextids = allids[len(ids)+1:]
-	id_error_writer = open(snFolder+"id_error_writer", "a")
+	ids_visited = ut.readLine2List(snFolder, idsVisitedFileName)
+	ids_saw = ut.readLine2List(snFolder, idsSawFileName)
+	nextids = ids_saw[len(ids_visited)+1:]
+	ids_error_writer = open(snFolder+idsErrorFileName, "a")
 
 
-	if len(allids)==0:
-		allids.append(root)
+	if len(ids_saw)==0:
+		ids_saw.append(root)
 	# build social network here
-	g = initGraph(allids, ids)
+	g = initGraph(ids_saw, ids_visited)
 
 	for uid in nextids:
 		# if uid not in ids:
@@ -208,9 +197,9 @@ def getGoogleUsers(sn = "google"):
 		while True:
 			try:
 				if error == 5:
-					id_error_writer.write(str(uid)+"\n")
+					ids_error_writer.write(str(uid)+"\n")
 					break
-				if parseGoogleUser(driver, g, snFolder, uid, ids, allids, nextids):
+				if parseGoogleUser(driver, g, snFolder, uid, ids_visited, ids_saw, nextids):
 					break
 			except:
 				error = error+1
@@ -219,19 +208,19 @@ def getGoogleUsers(sn = "google"):
 	driver.close()
 
 
-# def parseGoogleUser(driver, id, id_writer, allid_writer, rela_writer, sn_writer, profile_writer, content_path):
-def parseGoogleUser(driver, g, snFolder, uid, ids, allids, nextids):
+# def parseGoogleUser(driver, id, ids_visited_writer, ids_saw_writer, rela_writer, sn_writer, profile_writer, content_path):
+def parseGoogleUser(driver, g, snFolder, uid, ids, ids_saw, nextids):
 	s = time.time()
 	urlPrefix = "https://plus.google.com/"
 	urlAbout = urlPrefix+uid+"/about"
 	# urlPosts = urlPrefix+uid+"/posts"
 	# init file 
 	ut.initFolder(snFolder)
-	id_writer = open(snFolder+"id_file", 'a', encoding="utf8")
-	allid_writer = open(snFolder+"allid_file", 'a', encoding="utf8")
-	id_record_writer = open(snFolder+"id_record_file", 'a', encoding="utf8")
+	ids_visited_writer = open(snFolder+idsVisitedFileName, 'a', encoding="utf8")
+	ids_saw_writer = open(snFolder+idsSawFileName, 'a', encoding="utf8")
+	ids_recorded_writer = open(snFolder+idsRecordedFileName, 'a', encoding="utf8")
 
-	sn_writer = open(snFolder+"sn_file", 'a', encoding="utf8")
+	sn_writer = open("sn_file", 'a', encoding="utf8")
 	profile_writer = open(snFolder+"profile_file", 'a', encoding="utf8")
 	rela_writer = open(snFolder+"relationship_file", 'a', encoding="utf8")
 	# id
@@ -249,22 +238,52 @@ def parseGoogleUser(driver, g, snFolder, uid, ids, allids, nextids):
 		# add id
 		# ids.append(uid)
 
-		addFriend(g, friends, allids, allid_writer, nextids)
+		addFriend(g, friends, ids_saw, ids_saw_writer, nextids)
 		g.node[uid]["status"] = 1
-		writeUser2File(uid, sns, sn_bool, infos, friends, friend_bool, sn_writer, profile_writer, rela_writer, id_writer, id_record_writer)
+		writeUser2File(uid, sns, sn_bool, infos, friends, friend_bool, sn_writer, profile_writer, rela_writer, ids_visited_writer, ids_recorded_writer)
 		# write file
 
 		# if post_num>0:
-		# 	id_record_writer.write(","+str(1)+"\n")
+		# 	ids_recorded_writer.write(","+str(1)+"\n")
 		# else:
-		# 	id_record_writer.write(","+str(0)+"\n")
+		# 	ids_recorded_writer.write(","+str(0)+"\n")
 
 		e = time.time()
 		print(uid+" spend time:"+str(e-s))
 	else:
-		id_writer.write(uid+"\n")
+		ids_visited_writer.write(uid+"\n")
 	return True
 
+def getDriver():
+	# firefox 
+	# profile = webdriver.FirefoxProfile()
+	# profile.set_preference("intl.accept_languages","en-us"); 
+	# profile.set_preference("font.language.group","x-western")
+	return	webdriver.Firefox()
+	# login
+
+	# chrome
+	# options = webdriver.ChromeOptions()
+	# options.add_argument('--lang=en')
+	# driver = webdriver.Chrome(chrome_options=options)
+
+
+def loginGoogle(driver):
+	driver.get("https://plus.google.com/")
+	email_input = driver.find_element_by_id("Email")
+	email_input.send_keys("imsorry1121@gmail.com")
+	next_btn = driver.find_element_by_id("next").click()
+	WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.ID, "Passwd")))
+	pwd_input = driver.find_element_by_id("Passwd")
+	pwd_input.send_keys("PIpi09087358")
+	login_btn = driver.find_element_by_id("signIn").click()
+
+
+'''
+SN
+'''
+
+# Description: parse the mapping social networks of the user
 def getGoogleUserSocialNetwork(soup):
 	sns = [""]*len(snList)
 	sn_bool = False
@@ -293,12 +312,18 @@ def getGoogleUserSocialNetwork(soup):
 		print("sn error")
 		return sns, sn_bool
 
+
+'''
+Profile
+'''
+
 # Input: soup of about html
 # Output: list of information of profile
 # titleStr = "uid,name,gender,birthday,other names,\
 # 			school1,department1,school1_from,school1_to,desc1,school2,department2,school2_from,school2_to,desc2,school3,department3,school3_from,school3_to, desc3\
 # 			occupation,skills,, corp1, job1, job1From, job1To, description1, corp2, job2, job2From, job2To, description2, corp3, job3, job3From, job3To, description3 \
 # 			currentPlace,previousPlace1,previousPlace2"]
+# Description: Get google plus user profile
 def getGoogleUserProfile(soup):
 	basics = parseGoogleProfileBasic(soup)
 	educations = parseGoogleProfileEducation(soup)
@@ -437,10 +462,14 @@ def parseGoogleProfileLocation(soup):
 					places[2] = "" 
 	return places
 
+'''
+Relationship
+'''
+
 # Input: web driver
 # Output: friend id list
 # rowHeight = 588 (relationship)
-
+# Description: Get user's relationships
 def getGoogleUserRelationship(driver):
 	friends = list()
 	friend_bool = False
@@ -485,9 +514,15 @@ def getGoogleUserRelationship(driver):
 		print("no friends")
 		return friends, friend_bool
 
+
+'''
+Posts(wall)
+'''
+# Deprecated(parse posts in getGoogleData)
 # Input: driver, url of post page, uid
 # Output: wall content file named by uid
 # Return: len of posts
+# Desription: Get user's posts
 def writeGoogleUserWall(driver,snFolder, urlPosts, uid):
 	filePath = snFolder+"wall/"+uid
 	posts = getGoogleUserPosts(driver, urlPosts)
@@ -536,78 +571,62 @@ def getGoogleUserPosts(driver, urlPosts):
 	print(len(posts))
 	return posts
 
-
-def getDriver():
-	# firefox 
-	# profile = webdriver.FirefoxProfile()
-	# profile.set_preference("intl.accept_languages","en-us"); 
-	# profile.set_preference("font.language.group","x-western")
-	return	webdriver.Firefox()
-	# login
-
-	# chrome
-	# options = webdriver.ChromeOptions()
-	# options.add_argument('--lang=en')
-	# driver = webdriver.Chrome(chrome_options=options)
+'''
+Browser 
+'''
 
 
-def loginGoogle(driver):
-	driver.get("https://plus.google.com/")
-	email_input = driver.find_element_by_id("Email")
-	email_input.send_keys("imsorry1121@gmail.com")
-	next_btn = driver.find_element_by_id("next").click()
-	WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.ID, "Passwd")))
-	pwd_input = driver.find_element_by_id("Passwd")
-	pwd_input.send_keys("PIpi09087358")
-	login_btn = driver.find_element_by_id("signIn").click()
+'''
+Others
+'''
 
-def initGraph(allids, ids):
+def initGraph(ids_saw, ids_visited):
 	g = nx.Graph()
-	for uid in allids:
+	for uid in ids_saw:
 		g.add_node(uid, status=0) 
-	for uid in ids:
+	for uid in ids_visited:
 		g.node[uid]["status"] = 1
 	return g
 
-def addFriend(g, friends, allids, allids_writer, nextids):
+def addFriend(g, friends, ids_saw, ids_saw_writer, nextids):
 	for friend in friends:
 		try:
 			g.node[friend]
 		except:
 			g.add_node(friend, status=0)
-			allids.append(friend)
-			allids_writer.write(friend+"\n")
+			ids_saw.append(friend)
+			ids_saw_writer.write(friend+"\n")
 			nextids.append(friend)
 
-def writeUser2File(uid, sns, sn_bool, infos, friends, friend_bool, sn_writer, profile_writer, rela_writer, id_writer, id_record_writer):
+def writeUser2File(uid, sns, sn_bool, infos, friends, friend_bool, sn_writer, profile_writer, rela_writer, ids_visited_writer, ids_recorded_writer):
 	print("start to write:"+uid)
 	sn_writer.write(uid+','+','.join(sns)+'\n')
 	profile_writer.write(uid+',\t'+',\t'.join(infos)+'\n')
 	rela_writer.write(uid+' '+','.join(friends)+'\n')
-	id_writer.write(uid+"\n")
-	id_record_writer.write(uid)
+	ids_visited_writer.write(uid+"\n")
+	ids_recorded_writer.write(uid)
 	if sn_bool:
-		id_record_writer.write(","+str(1))
+		ids_recorded_writer.write(","+str(1))
 	else:
-		id_record_writer.write(","+str(0))
+		ids_recorded_writer.write(","+str(0))
 	if friend_bool:
-		id_record_writer.write(","+str(1)+"\n")
+		ids_recorded_writer.write(","+str(1)+"\n")
 	else:
-		id_record_writer.write(","+str(0)+'\n')
+		ids_recorded_writer.write(","+str(0)+'\n')
 	print("finish write")
 
 
 def reviseIdFile():
-	ids = ut.readLine2List(snFolder, "id_file2")
-	allids = ut.readLine2List(snFolder, "allid_file")
+	ids_visited = ut.readLine2List(snFolder, idsVisitedFileName+"2")
+	ids_saw = ut.readLine2List(snFolder, idsSawFileName)
 	loss = ut.readLine2List(snFolder, "tmp_ids")
 
 	# revise id file duplicate problem
 	g=nx.Graph()
 	dup = list()
 	num = list()
-	for i in range(len(allids)):
-		id = allids[i]
+	for i in range(len(ids_saw)):
+		id = ids_saw[i]
 		try:
 			g.node[id]
 			dup.append(id)
@@ -617,12 +636,12 @@ def reviseIdFile():
 	print(len(dup))
 	for i in range(len(num)-1, -1, -1):
 		pos = num[i]
-		del allids[pos]
+		del ids_saw[pos]
 	for l in loss:
-		allids.append(l)
-	ut.writeList2Line("../data/google/", "allid_file2", allids)
+		ids_saw.append(l)
+	ut.writeList2Line("../data/google/", "ids_saw2", ids_saw)
 	
-	# loss = list(set(allids[:(len(ids))])-set(ids))
+	# loss = list(set(ids_saw[:(len(ids))])-set(ids))
 	# ut.writeList2Line("../data/google/", "tmp_ids", loss)
 
 

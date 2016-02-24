@@ -31,6 +31,13 @@ def readCommaLine2List(path, fileName):
 	except:
 		return results
 
+def readJson2Dict(path, fileName):
+	try:
+		with open(getFileLocation(path, fileName), "r", encoding="utf8") as fi:
+			return json.loads(fi.read())
+	except:
+		return dict()
+
 def writeList2Line(path, fileName, results):
 	if results != None and len(results)>0:
 		with open(getFileLocation(path, fileName), "w") as fo:

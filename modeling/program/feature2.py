@@ -16,7 +16,6 @@ import langid
 import langdetect
 from textblob import TextBlob
 
-
 rule = re.compile("[`~!@#$%^&*()-_=+{}|\"\' ]")
 langs_not_western = ["zh", "ja", "ko"]
 # langs = ["zh"]
@@ -36,7 +35,7 @@ twitterIdNameFileName = "twitterIdName"
 '''
 Main
 '''
-def getUsersFeatures(procNum = 10):
+def getUsersFeatures(procNum = 16):
 	# init user pair by mapping
 	gts = ut.readCommaLine2List(interPath, gtStrictFileName)
 	sn1 = "google"
@@ -83,12 +82,12 @@ def getUsersFeatures(procNum = 10):
 	q = mp.Queue()
 
 	for i in range(procNum):
-		batchPairs = list()
 		if i == procNum-1:
 			batchPairs = pairs[i*batchNum:]
 		else:
 			batchPairs = pairs[i*batchNum:(i+1)*batchNum]
 		# p = td.Thread(target=getScoresWorker, args=(batchPairs, sn1, users_sn1, sn2, users_sn2, g1, g2, g0, q))
+		# p = mp.Process(target=getScoresWorker, args=(batchPairs, sn1, users_sn1, sn2, users_sn2, g1, g2, g0, q, profileGoogle, profileTwitter, wallGoogle, wallTwitter, textGoogle, textTwitter))
 		p = td.Thread(target=getScoresWorker, args=(batchPairs, sn1, users_sn1, sn2, users_sn2, g1, g2, g0, q, profileGoogle, profileTwitter, wallGoogle, wallTwitter, textGoogle, textTwitter))
 		p.start()
 		procs.append(p)
@@ -144,12 +143,11 @@ def getScoresWorker(pairs, sn1, users_sn1, sn2, users_sn2, g1, g2, g0, q, profil
 def calScores(userGoogle, userTwitter, g1, g2, g0, profileGoogle, profileTwitter, wallGoogle, wallTwitter, textGoogle, textTwitter, sn1, sn2):
 	profile1 = profileGoogle[userGoogle]
 	profile2 = profileTwitter[userTwitter]
-	# wall1 = wallGoogle[userGoogle]
-	# wall2 = wallGoogle[userTwitter]
-	# posts1 = textGoogle[userGoogle]
-	# posts2 = textTwitter[userTwitter]
-	scores = calProfileScore(sn1, profile1, sn2, profile2) + calSocialScore(g1, sn1, userGoogle, g2, sn2, userTwitter, g0)
-	 # + calBehaviorScore(posts1, posts2, text1, text2)
+	posts1 = wallGoogle[userGoogle]
+	posts2 = wallTwitter[userTwitter]
+	text1 = textGoogle[userGoogle]
+	text2 = textTwitter[userTwitter]
+	scores = calProfileScore(sn1, profile1, sn2, profile2) + calSocialScore(g1, sn1, userGoogle, g2, sn2, userTwitter, g0)+ calBehaviorScore(posts1, posts2, text1, text2)
 	return scores
 
 
@@ -162,13 +160,13 @@ def readData(users_google, users_twitter, twitterIdName):
 	textTwitter = dict()
 	for user in users_google:
 		profileGoogle[user] = ut.readJson2Dict(interPath+"google/profile/", user)
-		# wallGoogle[user] = ut.readJson2Dict(interPath+"google/wall/", user)
-		# textGoogle[user] = ut.readJson2Dict(interPath+"google/text/", user)
+		wallGoogle[user] = ut.readJson2Dict(interPath+"google/wall/", user)
+		textGoogle[user] = ut.readJson2Dict(interPath+"google/text/", user)
 	for user in users_twitter:
 		twitterName = twitterIdName[user]
 		profileTwitter[user] = ut.readJson2Dict(interPath+"twitter/profile/", twitterName)
-		# wallTwitter[user] = ut.readJson2Dict(interPath+"twitter/wall/", twitterName)
-		# textTwitter[user] = ut.readJson2Dict(interPath+"twitter/text/", twitterName)
+		wallTwitter[user] = ut.readJson2Dict(interPath+"twitter/wall/", twitterName)
+		textTwitter[user] = ut.readJson2Dict(interPath+"twitter/text/", twitterName)
 	return profileGoogle, profileTwitter, wallGoogle, wallTwitter, textGoogle, textTwitter
 	print("load file over")
 

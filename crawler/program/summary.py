@@ -1,32 +1,11 @@
 import utility as ut
 import networkx as nx
 import os
+import json
 
-snList = ["youtube", "facebook", "twitter", "linkedin", "flickr", "instagram", "tumblr", "github", "pinterest", "plus.google"]
-
-# Input: google social network mapping
-# Output: youtube mapping file, facebook mapping file, twitter mapping file
-# Description: mapping files produced by google social network mapping
-def createSNMapping():
-	path = "../data/google/"
-	fileName = "sn_file"
-	snLists = ut.readCommaLine2List(path, fileName)
-	fbMapping = list()
-	twitterMapping = list()
-	youtubeMapping = list()
-	for snList in snLists:
-		uid = snList[0]
-		if snList[1] != "":
-			youtubeMapping.append([snList[0],snList[1]])
-		if snList[2] != "":
-			fbMapping.append([snList[0],snList[2]])
-		if snList[3] != "":
-			twitterMapping.append([snList[0],snList[3]])
-	ut.writeList2CommaLine("../data", "youtubeMapping", youtubeMapping)
-	ut.writeList2CommaLine("../data", "fbMapping", fbMapping)
-	ut.writeList2CommaLine("../data", "twitterMapping", twitterMapping)
-
-
+'''
+Statistic
+'''
 # Description: calculate the numbers of friend links in one social network
 def calEdges(sn):
 	print("edges in "+sn)
@@ -56,12 +35,31 @@ def calNodes(sn):
 			g.add_node(uid)
 	print(len(g.nodes()))
 
-
-if __name__ == "__main__":
-
-	createSNMapping()
+# Description: Check if google profile, wall and twitter profile, wall exist
+# def calCompleteData():
 	
 
+# Description: write userids whose post file error
+def writeMissingGooglePosts():
+	ids = ut.readLine2List("../data/google/", "ids_mapping")
+	ids_parsed = list()
+	ids_errors = list()
+	for root, folder, filenames in os.walk("../data/google/wall"):
+		ids_parsed = filenames
+		ids_errors = list(set(ids)-set(ids_parsed))
+		for filename in filenames:
+			with open(os.path.join(root, filename), "r", errors="ignore") as fi:
+				try:
+					result = json.loads(fi.read())
+					if type(result) == dict:
+						ids_errors.append(filename)
+				except:
+					pass
+	ut.writeList2Line("../data/stat/", "google_ids_post_errors", ids_errors)
+
+
+if __name__ == "__main__":
+	writeMissingGooglePosts()
 	# google 
 	# print("summary in google")
 	# calEdges("google")
