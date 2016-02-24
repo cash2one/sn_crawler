@@ -5,3 +5,5 @@ modeling/output/*
 modeling/program/__pycache__/*
 crawler/program/__pycache__/*
 modeling/program/topic/*
+modeling/prediction/*
+modeling/evaluation/*
