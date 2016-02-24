@@ -7,3 +7,4 @@ crawler/program/__pycache__/*
 modeling/program/topic/*
 modeling/prediction/*
 modeling/evaluation/*
+modeling/program/sentiment/*
