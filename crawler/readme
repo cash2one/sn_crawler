@@ -1,20 +1,28 @@
-Program
+Crawler
 
+Program
 1. Get data from the web
 crawler.py: deprecated
 
-parseGoogle.py: get simple profile, relationship and social network mapping 
+getGoogleNetwork.py: get simple profile, relationship and social network mapping 
 getGoogleData.py: get complete profile and posts, active
 getTwitterData.py: active
 utility.py: utility function
-summary.py: create mapping and statistics
+process.py: create mapping
+summary.py: statistics
 repair.py: repair the misaligned id for ?
 
 Process:
 get google profile data, relationship file, social network mapping (sn_file) 
 => generate userids
 => twitter mapping 
-=> get google plus posts, twitter posts, relationship, profiles
+=> get google plus posts, profiles(getGoogleData), twitter posts, relationship, profiles(getTwitterData)
+
+1. propage Google plus graph, 取得record, sn_file, relationship (要經過某個人才知道他有沒有mapping)
+2. 產生twitterMapping, 進一步產生ids_mapping, names_mapping
+3. 	依據ids_mapping 用getGoogleData抓取profile, wall
+	依據names_mapping 用getTwitterData抓取profile, wall, relationship
+
 
 *Data:
 google
@@ -24,7 +32,7 @@ google
 	id_post_file: posts recorded id file
 	id_profile_file: profile recorded id file
 
-(parseGoogle.py)
+(getGoogleNetwork.py)
 	id_file: parsed_id
 	id_record_file: parsed_id possesing profile and its status of sn mapping and relationship (boolean)
 	sn_file: parsed_id possesing profile and its social networks mapping
@@ -56,3 +64,12 @@ repair.py
 summary.py
 
 
+
+
+Modeling
+Process:
+1. get ground truth for loose and strict, get twitter relationship_file_revise
+2. get struct data for strict
+3. get feature for strict
+* stat to calculate the name score sorting, and then use it to find the candidate selection criteria
+4. use ranklib to evaluate

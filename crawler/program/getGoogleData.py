@@ -2,16 +2,20 @@ import urllib.request
 import json
 import utility as ut
 import codecs
+import time
 # get google plus data by google plus api
 # just post and profile, cannot get relationship
-api_key = ""
+
+
 apiPrefix = "https://www.googleapis.com/plus/v1/people/"
 key = "?key=AIzaSyDQjrGhUlsgX6wxryil8elEPJtJKdSUW8U"
 apiPostPostfix = "/activities/public"
 
 path = "../data/google/"
+statPath = "../data/stat/"
 idProfileFileName = "id_profile_file"
 idPostFileName = "id_post_file"
+idsMapping = "ids_mapping"
 
 def getUsers():
 	# url ="https://www.googleapis.com/plus/v1/people/105774718778616150593/people/visible?orderBy=best&key=AIzaSyDQjrGhUlsgX6wxryil8elEPJtJKdSUW8U"
@@ -21,9 +25,10 @@ def getUsers():
 	# get next page token by 
 	print(json)
 
+# Description: Get google plus users profile
 def getUsersProfile():
 	print("get users profile")
-	userids = ut.readLine2List(path, "userids")
+	userids = ut.readLine2List(path, "ids_mapping")
 	useridsCrawled = ut.readLine2List(path, idProfileFileName)
 	fi = open(path+idProfileFileName, 'a')
 	for userid in userids[len(useridsCrawled):]:
@@ -42,18 +47,24 @@ def getUserProfile(userid):
 	except:
 		return {"status":"error"}
 
+# Description: Get google plus users post
 def getUsersPost():
 	print("get users post")
-	userids = ut.readLine2List(path, "userids")
+	userids = ut.readLine2List(path, "ids_mapping")
 	useridsCrawled = ut.readLine2List(path, idPostFileName)
+	useridsError = ut.readLine2List(statPath, "google_ids_post_errors")
+	# useridsLeft = list(set(userids)-set(useridsCrawled))
 	# fi = open(path+idPostFileName, 'a')
 	# fi.write("start")
-	for userid in userids[len(useridsCrawled):]:
+	for userid in useridsError:
+		# timer here
 		# fi.write(userid+'\n')
 		with open(path+idPostFileName, "a") as fi:
 			fi.write(userid+"\n")
 		print(userid)
 		posts = getUserPost(userid)
+		print(len(posts))
+		time.sleep(8)
 		with codecs.open(path+"wall/"+userid, "w", encoding="utf-8") as fo:
 			fo.write(json.dumps(posts, indent=4, ensure_ascii=False))
 
@@ -65,27 +76,21 @@ def getUserPost(userid):
 		jresult = json.loads(result.decode("utf-8"))
 		posts.append(jresult)
 	except:
+		print(userid)
 		return {"status":"error"}
 	try:
 		while jresult["nextPageToken"]:
+			time.sleep(8)
 			pageToken = jresult["nextPageToken"]
 			urlNext = url+"&pageToken="+pageToken
 			result = urllib.request.urlopen(urlNext).read()
 			jresult = json.loads(result.decode("utf-8"))
 			posts.append(jresult)
 	except:
-		# print(len(posts))
 		return posts
 
 
-def writeUserIds():
-	userids = list()
-	with open("../data/twitterMapping", "r") as fi:
-		for line in fi:
-			uid = line.split(",")[0]
-			userids.append(uid)
-	# print(userids)
-	ut.writeList2Line(path, "userids", userids)
+
 
 
 def test():
@@ -94,7 +99,7 @@ def test():
 
 if __name__ == "__main__":
 	# getUsers()
-	# getUserPost("110318982509514011806")
+	# getUserPost("100013290597972346821")
 	getUsersPost()
 	# getUserProfile("103169532913084862537")
 	# getUsersProfile()
