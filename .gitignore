@@ -2,3 +2,5 @@ crawler/data/
 modeling/data/*
 modeling/intermediate/*
 modeling/output/*
+modeling/program/__pycache__/*
+crawler/program/__pycache__/*
