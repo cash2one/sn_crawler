@@ -47,8 +47,9 @@ def evalNm(filename="nm_1558.txt"):
 
 def evalRanking(filename="ranking_1558.txt"):
 	print("Evaluation: Ranking")
-	gts, preds = prepRanking(1558, )
-	evaluate(gts, preds)
+	preds = ut.readLine2List(predPath, filename)
+	gts = ut.readLine2List(predPath, gtFilename)
+	return evaluate(gts, preds)
 
 def evalMna():
 	print("Evaluation: Name")
@@ -58,20 +59,7 @@ def evalPvm():
 	print("Evaluation: Profile Vector Matching")
 
 
-# merge ranking and scores files
-def prepRanking(n=1558, filename="ranking_1558.txt"):
-	scores = ut.readLine2List(predPath, filename)
-	preds = list()
-	gts = ut.readLine2List(predPath, gtFilename)
-	for i in range(n):
-		# print(i*n)
-		scores_i = scores[i*n:(i+1)*n]
-		max_index = max(enumerate(scores_i), key=lambda k: float(k[1]))[0]
-		# print(max_index)
-		preds_i = ["0"]*1558
-		preds_i[max_index] = "1"
-		preds += preds_i
-	return gts, preds
+
 
 
 if __name__ == "__main__":
