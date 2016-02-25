@@ -8,3 +8,4 @@ modeling/program/topic/*
 modeling/prediction/*
 modeling/evaluation/*
 modeling/program/sentiment/*
+modeling/others/*

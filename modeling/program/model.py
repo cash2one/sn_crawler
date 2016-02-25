@@ -79,5 +79,5 @@ def mnaConstraint():
 
 if __name__ == "__main__":
 	ranking()
-	# nm()
+	nm()
 	# nmGrid()
