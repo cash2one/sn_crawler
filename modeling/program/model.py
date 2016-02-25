@@ -1,14 +1,22 @@
 import utility as ut
 import evaluate as el
+from sklearn import svm
+import operator
+import sys
+
+sys.setrecursionlimit(10000)
 outputPath = "../output/"
 predPath = "../prediction/"
 featureRankFilename = "features_rank"
 featureNmFilename = "features_nm"
 featureMnaFilename = "features_mna"
 
+predictionRankConstraintFilename = "ranking_constraint_1558.txt"
 predictionRankFilename = "ranking_1558.txt"
+predictionRankOriginFilename = "ranking_origin_1558.txt"
 predictionNmFilename = "nm_1558.txt"
 predictionMnaFilename = "mna_1558.txt"
+predictionMnaOriginFilename = "mna_origin_1558.txt"
 
 
 '''
@@ -30,7 +38,28 @@ def ranking(n=1558, filename="ranking_origin_1558.txt"):
 	return preds
 
 
-# def rankingConstraint():
+def rankingConstraint(n=1558):
+	scores = ut.readLine2List(predPath, predictionRankOriginFilename)
+	users1 = list()
+	users2 = dict()
+	predictions = list()
+	results = list()
+	# init
+	for i in range(n):
+		users2[i] = {"active": 0, "user": 0, "index": 0, "score": 0}
+	for i in range(n):
+		scores_i = scores[n*i:n*(i+1)]
+		users1.append(sorted(enumerate(scores_i), key=lambda k: k[1]))
+	# choose one mapping 
+	for i in range(n):
+		findMapping(users1, users2, i, 0)
+	results = sorted([(v["user"], k) for k, v in users2.items()], key=operator.itemgetter(0))
+	for pair in results:
+		user2 = pair[1]
+		predictions_i = ["0"]*n
+		predictions_i[user2] = "1"
+		predictions+=predictions_i
+	ut.writeList2Line(predPath, predictionRankConstraintFilename, predictions)	
 
 '''
 Name Matching
@@ -73,11 +102,63 @@ MNA (Multiple Network Anchoring)
 
 
 
-def mnaConstraint():
-	predictions = ut.readLine2List(outputPath, predictionMnaFilename)
+def mnaConstraint(n=1558):
+	scores = ut.readLine2List(predPath, predictionMnaOriginFilename)
+	users1 = list()
+	users2 = dict()
+	predictions = list()
+	results = list()
+	# init
+	for i in range(n):
+		users2[i] = {"active": 0, "user": 0, "index": 0, "score": 0}
+	for i in range(n):
+		scores_i = scores[n*i:n*(i+1)]
+		users1.append(sorted(enumerate(scores_i), key=lambda k: k[1]))
+	# choose one mapping 
+	for i in range(n):
+		findMapping(users1, users2, i, 0)
+	results = sorted([(v["user"], k) for k, v in users2.items()], key=operator.itemgetter(0))
+	for pair in results:
+		user2 = pair[1]
+		predictions_i = ["0"]*n
+		predictions_i[user2] = "1"
+		predictions+=predictions_i
+	ut.writeList2Line(predPath, predictionMnaFilename, predictions)	
+
+
+
+
+
+def findMapping(users1, users2, user1, index):
+	# print(user1, index)
+	scores_i = users1[user1]
+	target = -1
+	while(target==-1):
+		target = scores_i[index][0]
+		score = scores_i[index][1]
+		if users2[target]["active"]==0:
+			users2[target]["active"] = 1
+			users2[target]["score"] = score
+			users2[target]["index"] = index
+			users2[target]["user"] = user1
+		else:
+			if (score > users2[target]["score"]):
+				user1_next = users2[target]["user"]
+				index_next = users2[target]["index"]
+				users2[target]["score"] = score
+				users2[target]["index"] = index
+				users2[target]["user"] = user1
+				print(user1_next, index_next)
+				findMapping(users1, users2, user1_next, index_next+1)
+			else:
+				index += 1
+				target = -1
+
+
 
 
 if __name__ == "__main__":
-	ranking()
+	# ranking()
+	rankingConstraint()
 	# nm()
 	# nmGrid()
