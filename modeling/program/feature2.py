@@ -191,12 +191,8 @@ def getProfileScore(sn1, user1, sn2, user2):
 	profile1 = dict()
 	profile2 = dict()
 	with open(interPath+sn1+"/profile/"+user1, "r") as fi:
-		# jresult1 = json.loads(fi.read())
-		# profile1 = normProfile(sn1, jresult1)
 		profile1 = json.loads(fi.read())
 	with open(interPath+sn2+"/profile/"+user2, "r") as fi:
-		# jresult2 = json.loads(fi.read())
-		# profile2 = normProfile(sn2, jresult2)
 		profile2 = json.loads(fi.read())
 	scoresProfile = calProfileScore(sn1, profile1, sn2, profile2)
 	return scoresProfile

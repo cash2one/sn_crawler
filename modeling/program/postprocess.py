@@ -5,6 +5,7 @@ predictionPath = "../prediction/"
 featureRankFilename = "features_rank"
 featureNmFilename = "features_nm"
 featureMnaFilename = "features_mna"
+featureSvmFilename = "features_svm"
 gtFilename = "gt"
 
 # Description: feature selection
@@ -55,6 +56,16 @@ def getMnaFeature():
 				features = data[2:-2]
 				fo.write(" ".join([gt]+features)+"\n")
 
+def getSvmFeature():
+	with open(ut.getFileLocation(outputPath, featureSvmFilename), "w") as fo:
+		with open(ut.getFileLocation(outputPath, featureRankFilename), "r") as fi:
+			for line in fi:
+				data = line.strip().split(" ")
+				gt = data[0]
+				features = [f.split(":")[1] for f in data[2:-2]]
+				fo.write(",".join([gt]+features)+"\n")
+
+
 def getGt(n=1558):
 	gts = list()
 	for i in range(n):
@@ -69,4 +80,5 @@ def getGt(n=1558):
 if __name__=="__main__":
 	# getNmFeature()
 	# getMnaFeature()
-	getGt()
+	# getGt()
+	getSvmFeature()

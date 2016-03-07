@@ -30,8 +30,11 @@ def getUsersProfile():
 	print("get users profile")
 	userids = ut.readLine2List(path, "ids_mapping")
 	useridsCrawled = ut.readLine2List(path, idProfileFileName)
+	useridsLeft = list(set(userids)-set(useridsCrawled))
 	fi = open(path+idProfileFileName, 'a')
-	for userid in userids[len(useridsCrawled):]:
+	for userid in useridsLeft:
+	# for userid in userids[len(useridsCrawled):]:
+		time.sleep(8)
 		print(userid)
 		profile = getUserProfile(userid)
 		with codecs.open(path+"profile/"+userid, "w", encoding="utf-8") as fo:
@@ -53,17 +56,17 @@ def getUsersPost():
 	userids = ut.readLine2List(path, "ids_mapping")
 	useridsCrawled = ut.readLine2List(path, idPostFileName)
 	useridsError = ut.readLine2List(statPath, "google_ids_post_errors")
-	# useridsLeft = list(set(userids)-set(useridsCrawled))
+	useridsLeft = list(set(userids)-set(useridsCrawled))
 	# fi = open(path+idPostFileName, 'a')
 	# fi.write("start")
-	for userid in useridsError:
+	# for userid in useridsError:
+	for userid in useridsLeft:
 		# timer here
 		# fi.write(userid+'\n')
 		with open(path+idPostFileName, "a") as fi:
 			fi.write(userid+"\n")
 		print(userid)
 		posts = getUserPost(userid)
-		print(len(posts))
 		time.sleep(8)
 		with codecs.open(path+"wall/"+userid, "w", encoding="utf-8") as fo:
 			fo.write(json.dumps(posts, indent=4, ensure_ascii=False))
@@ -79,7 +82,8 @@ def getUserPost(userid):
 		print(userid)
 		return {"status":"error"}
 	try:
-		while jresult["nextPageToken"]:
+		# one result 20 posts
+		while jresult["nextPageToken"] and len(posts)<=50:
 			time.sleep(8)
 			pageToken = jresult["nextPageToken"]
 			urlNext = url+"&pageToken="+pageToken

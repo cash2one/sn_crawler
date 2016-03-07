@@ -8,8 +8,11 @@ gtFilename = "gt"
 
 
 def main():
+	# evalMna()
+	evalMnaConstraint()
+	# evalRankingConstraint()
 	# evalRanking()
-	evalNm()
+	# evalNm()
 
 # Input: prediction list and ground truth list (two-class)
 # precision and recall
@@ -51,8 +54,23 @@ def evalRanking(filename="ranking_1558.txt"):
 	gts = ut.readLine2List(predPath, gtFilename)
 	return evaluate(gts, preds)
 
-def evalMna():
-	print("Evaluation: Name")
+def evalRankingConstraint(filename="ranking_constraint_1558.txt"):
+	print("Evaluation: Ranking constraint")
+	preds = ut.readLine2List(predPath, filename)
+	gts = ut.readLine2List(predPath, gtFilename)
+	return evaluate(gts, preds)
+
+def evalMna(filename="mna_1558.txt"):
+	print("Evaluation: MNA")
+	preds = ut.readLine2List(predPath, filename)
+	gts = ut.readLine2List(predPath, gtFilename)
+	return evaluate(gts, preds)
+
+def evalMnaConstraint(filename="mna_constraint_1558.txt"):
+	print("Evaluation: MNA Constraint")
+	preds = ut.readLine2List(predPath, filename)
+	gts = ut.readLine2List(predPath, gtFilename)
+	return evaluate(gts, preds)
 
 
 def evalPvm():

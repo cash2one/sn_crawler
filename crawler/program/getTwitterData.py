@@ -46,8 +46,10 @@ def getUsersProfile():
 	# total user - crawled users before
 	usernames = ut.readLine2List(path, namesMappingFileName)
 	usernamesCrawled = ut.readLine2List(path, idProfileFileName)
+	usernamesLeft = list(set(usernames)-set(usernamesCrawled))
 	fi = open(path+idProfileFileName, 'a')
-	for username in usernames[len(usernamesCrawled):]:
+	for username in usernamesLeft:
+	# for username in usernames[len(usernamesCrawled):]:
 		print(username)
 		time.sleep(5)
 		profile = getUserProfile("",username)
@@ -128,8 +130,9 @@ Posts
 def getUsersTweets():
 	usernames = ut.readLine2List(path, namesMappingFileName)
 	usernamesCrawled = ut.readLine2List(path, "id_post_file")
+	usernamesLeft = list(set(usernames)-set(usernamesCrawled))
 	fi = open(path+idPostFileName, 'a')
-	for username in usernames[len(usernamesCrawled):]:
+	for username in usernamesLeft:
 		print(username)
 		time.sleep(5)
 		tweets = getUserTweets("",username)
@@ -162,7 +165,7 @@ def getUserTweets(user_id="", screen_name=""):
 	if type(jresult)==list and len(jresult)>0:
 		tweets = tweets + jresult
 		maxId = str(int(jresult[-1]["id_str"])-1)
-		while (type(jresult) == list and len(jresult)>0 and len(tweets)<5000):
+		while (type(jresult) == list and len(jresult)>0 and len(tweets)<1000):
 			time.sleep(5)
 			urlNext = url+"&max_id="+maxId
 			response = twitterreq(urlNext, "GET", parameters)
@@ -220,6 +223,6 @@ if __name__ == '__main__':
 	# fetchsamples()
 	# print(getUserFriendship(user_id="17004618"))
 
-	getUsersFriendship()
+	# getUsersFriendship()
 	getUsersTweets()
-	getUsersProfile()
+	# getUsersProfile()
