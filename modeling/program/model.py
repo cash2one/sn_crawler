@@ -34,51 +34,120 @@ CLF (collective link fusion)
 
 def clf(n=1558, filename="clf_1558.txt"):
 	# read link and features
-# 1.build formation probability (for social and anchor)
-# 	a. data split for 5 folds
-# 	b. pu learning to build model Mf by P and RN
-# 	c. get formation probability
+	# 1.build formation probability (for social and anchor)
+	# 	a. data split for 5 folds
+	# 	b. pu learning to build model_f by model and transition probability
+	# 	c. get formation probability 
 	data_anchor = np.loadtxt(outputPath+featureSvmFilename, delimiter=",")
 	data_social = np.loadtxt(outputPath+featureLinkFilename, delimiter=",0")
 	# build anchor formation probability and its model
 	data = data_anchor
-	# choose equal negative data
-	pos_data, neg_data = sampleData(data)
-	data = np.concatenate((pos_data, neg_data), axis=0)
-	X = data[:,0]
-	Y = data[0]
+	data = np.append(data, np.zeros((len(data),1)), 1)
+	data = sampleData(data)
+	# 這邊data要加入那個node到哪個node不然無法產生matrix
+	
+	# X = data[:,0]
+	# Y = data[0]
 	kf = cv.KFold(n=len(data), n_folds=5, shuffle=True)
 	for train_index, test_index in kf:
-		# store formation probability
 		getFormProb(train_index, test_index, data)
+	print(data[:,-1])
+	# get node name and its formation prob
+	# 這邊只有少量的data有些link沒有放進來，傳入data 
+	matrix = getMatrix(links)
+	# 2. Use formation probability to random walk, alpha s=0.6, alpha a=0.6, c = 0.1
+	# ps, pt, ws, wt, wts, wst
+
+	
+
+
+def getMatrix():
+	gids, tids = getGt()
+	nodes = gids+tids
+	matrix = np.empty([len(nodes),len(nodes)])
+
+	links_g = getSocialLinks("../intermediate/google/relationship", gids)
+	links_t = getSocialLinks("../intermediate/twitter/relationship", tids)
+	links = links_g+links_t
+	for link in links:
+		uid1, uid2 = link
+		index1 = nodes.index(uid1)
+		index2 = nodes.index(uid2)
+		matrix[index1,index2]=1
+		matrix[index2,index1]=1
 
 
 
 
-
-# 2. Use formation probability to random walk, alpha s=0.6, alpha a=0.6, c = 0.1
-# ps, pt, ws, wt, wts, wst
-
-# Description: Sampling negative data
-
-
-
+	# read two graph node and its social links
+	# read two
 
 # Description: pu learning + feature extraction
-def getSocialLinkFeatures():
+# def getSocialLinkFeatures():
 # 
+
+# Description: get fully aligment ids
+# Return: two social networks ids
+def getGt(filename="../intermediate/gt"):
+	gids = list()
+	tids = list()
+	with open(filename, "r") as fi:
+		for line in fi:
+			gid, tid  = line.split(",")
+			gids.append(gid)
+			tids.append(tid)
+	return sorted(gids), sorted(tids)
+
+# Description: get social links among specific ids
+# Return: id pair between them
+def getSocialLinks(filename="../intermediate/google/relationship", uids):
+	links = list()
+	with open(filename, "r") as fi:
+		for line in fi:
+			sid, tid_str = line.strip().split(" ")
+			if sid not in uids:
+				continue
+			tids = tid_str.split(",")
+			for tid in tids:
+				if tid in uids:
+					links.append((sid, tid))
+	return links
 
 def getFormProb(train_index, test_index, data):
 	valid_index = train_index[len(train_index)-len(test_index):]
 	train_index = train_index[:len(train_index)-len(test_index)]
 	data_train, data_valid, data_test = data[train_index], data[valid_index], data[test_index]
-	# X_train, X_valid, X_test = X[train_index], X[valid_index], X[test_index]
-	# Y_train, Y_valid, Y_test = Y[train_index], Y[valid_index], Y[test_index]
-	model, puLearn(data_train, 0.15)
-	p_transition = 0
+	model = trainModel(data_train)
+	t_p = getTransProb(model, data_valid)
+	p_form_test = getTestFormProb(t_p, data_test[:,1:-1], model)
+	for index, t_index in enumerate(test_index):
+		data[t_index,-1] = p_form_test[index]
 
 
+def getTestFormProb(t_p, x, model):
+	p_test = model.predict_proba(x)[:,1]
+	p_form_test = [p/t_p for p in p_test]
+	return p_form_test
 
+def getTransProb(model, data):
+	pos_index = np.where(data[:,0]==1)
+	p = model.predict_proba(data[:,1:-1])[:,1]
+	t_p = sum(p)/len(pos_index)
+	return t_p
+
+def trainModel(data):
+	model = svm.SVC(probability=True)
+	model.fit(data[:,1:-1], data[:,0])
+
+'''
+Random Walk
+'''
+
+def randomWalk(matrix, p, c):
+	p_next = list(p)
+	for i in range(1000):
+		p_next = (1-c)*np.dot(matrix, p_next)+c*p
+	return p_next
 '''
 PU Learning
 '''
@@ -90,37 +159,35 @@ def puLearn(data, alpha):
 	pos_index = np.where(data[:,0]==1)
 	s_index = random.sample(pos_index, int(len(pos_index)*alpha))
 	neg_index = np.where(data[:,0]==0)
-	# ps_index = np.zeros(len(data), np.bool)
-	# ps_index[pos_index] = 1
-	# ps_index[s_index] = 0
-	# us_index = np.ones(len(data), np.bool)
-	# us_index[pos_index] = 0
-	# us_index[s_index] = 1
-	# data_ps = data[ps_index]
-	# data_us = data[us_index]
+	rn_index = list()
 	data[s_index,0] = 0
-
-	# just revise the label to the opposite
-	model = svm.SVC(probability=True)
-	model.fit(data[:,1:], data[:,0])
+	model_s = svm.SVC(probability=True)
+	model_s.fit(data[:,1:], data[:,0])
 	# predict the probability of s set
 
-	probs_s = [model.predict_proba(s[:,1:]) for s in data[s_index]]
-	t = min(probs)
-	probs_neg = [mode]
-	rn_indi = 
+	probs_s = [model_s.predict_proba(s[:,1:])[0,1] for s in data[s_index]]
+	t = min(probs_s)
+	probs_neg = [model_s.predict_proba(neg[:,1:])[0,1] for neg in data[neg_index]]
+	for index, prob in enumerate(probs_neg):
+		if prob < t:
+			rn_index.append(neg_index[index])
+	data_f = np.concatenate((data[pos_index], data[rn_index]), axis=0)
+	model_f = svm.SVC(probability=True)
+	model_f.fit(data_f[:,1:], data_f[:,0])
+	return model_f
 
 
-	# p, rn for 
-	
-
+'''
+Others
+'''
 def sampleData(data):
 	neg_index = np.where(data[:,0]==0)
 	pos_index = np.ones(len(data), np.bool)
 	pos_index[neg_index] = 0
 	pos_data = data[pos_index]
 	neg_samples = random.sample(neg_data, len(data)-len(neg_inst))
-	return pos_data, neg_samples
+	data = np.concatenate((pos_data, neg_data), axis=0)
+	return data
 
 def sampleSpy(data):
 
