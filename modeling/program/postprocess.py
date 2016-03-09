@@ -62,8 +62,12 @@ def getSvmFeature():
 			for line in fi:
 				data = line.strip().split(" ")
 				gt = data[0]
+				gid = data[1].split(":")[1]
+				tid = data[-1]
 				features = [f.split(":")[1] for f in data[2:-2]]
-				fo.write(",".join([gt]+features)+"\n")
+				if len(features)<50:
+					features+=["0"]*(50-len(features))
+				fo.write(",".join([gt,gid,tid]+features)+"\n")
 
 
 def getGt(n=1558):

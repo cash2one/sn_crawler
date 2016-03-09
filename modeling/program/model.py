@@ -2,7 +2,7 @@ import utility as ut
 import evaluate as el
 import operator
 import sys
-import sklearn
+import os
 import sklearn.cross_validation as cv
 import feature2 as ft
 import numpy as np
@@ -17,6 +17,7 @@ featureNmFilename = "features_nm"
 featureMnaFilename = "features_mna"
 featureSvmFilename = "features_svm"
 featureLinkFilename = "features_link"
+featureSvmSampleFilename = "features_svm_sample"
 
 predictionRankConstraintFilename = "ranking_constraint_1558.txt"
 predictionRankFilename = "ranking_1558.txt"
@@ -30,57 +31,103 @@ predictionMnaConstraintFilename = "mna_constraint_1558.txt"
 '''
 CLF (collective link fusion)
 '''
-
-
-def clf(n=1558, filename="clf_1558.txt"):
-	# read link and features
+# Description:
 	# 1.build formation probability (for social and anchor)
 	# 	a. data split for 5 folds
 	# 	b. pu learning to build model_f by model and transition probability
 	# 	c. get formation probability 
-	data_anchor = np.loadtxt(outputPath+featureSvmFilename, delimiter=",")
-	data_social = np.loadtxt(outputPath+featureLinkFilename, delimiter=",0")
-	# build anchor formation probability and its model
-	data = data_anchor
-	data = np.append(data, np.zeros((len(data),1)), 1)
-	data = sampleData(data)
-	# 這邊data要加入那個node到哪個node不然無法產生matrix
-	
-	# X = data[:,0]
-	# Y = data[0]
+def clf(filename="clf_1558.txt"):
+	c=0.1
+	alpha=0.6
+	# 1.build formation probability (for social and anchor)
+	data = getSampleData()
 	kf = cv.KFold(n=len(data), n_folds=5, shuffle=True)
 	for train_index, test_index in kf:
 		getFormProb(train_index, test_index, data)
 	print(data[:,-1])
-	# get node name and its formation prob
+	links_anchor=list()
+	for inst in data:
+		if inst[-1]!=0:
+			links_anchor.append((inst[1],inst[2],inst[-1]))
 	# 這邊只有少量的data有些link沒有放進來，傳入data 
-	matrix = getMatrix(links)
+
 	# 2. Use formation probability to random walk, alpha s=0.6, alpha a=0.6, c = 0.1
-	# ps, pt, ws, wt, wts, wst
+	matrix, nodes, gids, tids = getMatrix(anchor_links, alpha)
+	preds = list()
+	for gid in gids:
+		p = np.zeros(len(nodes))
+		p[nodes.index(gid)]=1
+		p_final = randomWalk(matrix,p,c)
+		tid = nodes[p_final[len(gids):].argmax()]
+		preds.append([gid,tid,1])
+	ut.writeList2CommaLine("../prediction/",filename)
 
-	
+	# revise the prediction to format
 
 
-def getMatrix():
+def getSampleData():
+	if os.path.isfile(outputPath+featureSvmSampleFilename):
+		data = np.loadtxt(outputPath+featureSvmSampleFilename, delimiter=",")
+	else:
+		data_anchor = np.loadtxt(outputPath+featureSvmFilename, delimiter=",")
+		# data_social = np.loadtxt(outputPath+featureLinkFilename, delimiter=",")
+		# build anchor formation probability and its model
+		print("load finish")
+		data = data_anchor
+		data = np.append(data, np.zeros((len(data),1)), 1)
+		data = sampleData(data)
+		np.savetxt(outputPath+featureSvmSampleFilename,data, delimiter=",")
+		print("sample finish")
+	return data
+
+def formatPred(preds):
+	gids = list()
+	tids = list()
+	with open("../intermediate/gt_stric") as fi:
+		for line in fi:
+			gid,tid = line.strip().split(",")
+
+# Description: use social and anchor links to produce matrix, by alpha=0.6
+def getMatrix(links_anchor,alpha):
 	gids, tids = getGt()
 	nodes = gids+tids
 	matrix = np.empty([len(nodes),len(nodes)])
 
-	links_g = getSocialLinks("../intermediate/google/relationship", gids)
-	links_t = getSocialLinks("../intermediate/twitter/relationship", tids)
-	links = links_g+links_t
+	# build four matrix 
+	links_g = getSocialLinks("../intermediate/google/relationship_file", gids)
+	links_t = getSocialLinks("../intermediate/twitter/relationship_file_revise", tids)
+	matrix_g = getLinkMatrix(gids, links_g)
+	matrix_t = getLinkMatrix(tids, links_t)
+	matrix_a = getLinkMatrix(nodes, links_anchor)
+	# links_social = links_g+links_t
+	# links = links_anchor+links_social
+	# for link in links:
+	# 	uid1, uid2, prob = link
+	# 	index1 = nodes.index(uid1)
+	# 	index2 = nodes.index(uid2)
+	# 	matrix[index1,index2]=prob
+	# 	matrix[index2,index1]=prob
+	# add anchor links
+	matrix[:len(gids),:len(gids)] += matrix_g*alpha
+	matrix[len(gids):,len(gids):] += matrix_t*alpha
+	matrix += matrix_a*(1-alpha)
+	return matrix, nodes, gids, tids
+
+def getLinkMatrix(nodes, links):
+	matrix = np.empty([len(nodes),len(nodes)]) 
 	for link in links:
-		uid1, uid2 = link
+		uid1, uid2, prob = link
 		index1 = nodes.index(uid1)
 		index2 = nodes.index(uid2)
-		matrix[index1,index2]=1
-		matrix[index2,index1]=1
+		matrix[index1,index2]=prob
+		matrix[index2,index1]=prob
+	row_sums = matrix.sum(axis=1)
+	matrix_norm = matrix / row_sums[:, np.newaxis]
+	return matrix_norm
 
 
 
 
-	# read two graph node and its social links
-	# read two
 
 # Description: pu learning + feature extraction
 # def getSocialLinkFeatures():
@@ -88,7 +135,7 @@ def getMatrix():
 
 # Description: get fully aligment ids
 # Return: two social networks ids
-def getGt(filename="../intermediate/gt"):
+def getGt(filename="../intermediate/gt_strict"):
 	gids = list()
 	tids = list()
 	with open(filename, "r") as fi:
@@ -100,7 +147,7 @@ def getGt(filename="../intermediate/gt"):
 
 # Description: get social links among specific ids
 # Return: id pair between them
-def getSocialLinks(filename="../intermediate/google/relationship", uids):
+def getSocialLinks(filename, uids):
 	links = list()
 	with open(filename, "r") as fi:
 		for line in fi:
@@ -110,7 +157,7 @@ def getSocialLinks(filename="../intermediate/google/relationship", uids):
 			tids = tid_str.split(",")
 			for tid in tids:
 				if tid in uids:
-					links.append((sid, tid))
+					links.append((sid, tid, 1))
 	return links
 
 def getFormProb(train_index, test_index, data):
@@ -118,26 +165,27 @@ def getFormProb(train_index, test_index, data):
 	train_index = train_index[:len(train_index)-len(test_index)]
 	data_train, data_valid, data_test = data[train_index], data[valid_index], data[test_index]
 	model = trainModel(data_train)
-	t_p = getTransProb(model, data_valid)
+	t_p = getValidTransProb(model, data_valid)
 	p_form_test = getTestFormProb(t_p, data_test[:,1:-1], model)
+	print(p_form_test)
 	for index, t_index in enumerate(test_index):
 		data[t_index,-1] = p_form_test[index]
 
 
 def getTestFormProb(t_p, x, model):
-	p_test = model.predict_proba(x)[:,1]
+	p_test = model.predict_proba(x)[:,3:-1][:,1]
 	p_form_test = [p/t_p for p in p_test]
 	return p_form_test
 
-def getTransProb(model, data):
+def getValidTransProb(model, data):
 	pos_index = np.where(data[:,0]==1)
-	p = model.predict_proba(data[:,1:-1])[:,1]
+	p = model.predict_proba(data[:,3:-1])[:,1]
 	t_p = sum(p)/len(pos_index)
 	return t_p
 
 def trainModel(data):
 	model = svm.SVC(probability=True)
-	model.fit(data[:,1:-1], data[:,0])
+	model.fit(data[:,3:-1], data[:,0])
 
 '''
 Random Walk
@@ -188,8 +236,6 @@ def sampleData(data):
 	neg_samples = random.sample(neg_data, len(data)-len(neg_inst))
 	data = np.concatenate((pos_data, neg_data), axis=0)
 	return data
-
-def sampleSpy(data):
 
 
 '''
@@ -329,8 +375,9 @@ def oneMappingRecur(users1, users2, user1, index):
 
 
 if __name__ == "__main__":
+	clf()
 	# ranking()
 	# rankingConstraint()
-	mnaConstraint()
+	# mnaConstraint()
 	# nm()
 	# nmGrid()
