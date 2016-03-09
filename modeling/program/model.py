@@ -1,3 +1,4 @@
+# coding=utf8
 import utility as ut
 import evaluate as el
 import operator
@@ -19,6 +20,7 @@ featureSvmFilename = "features_svm"
 featureLinkFilename = "features_link"
 featureSvmSampleFilename = "features_svm_sample"
 
+predictionClfFilename ="clf_1558.txt"
 predictionRankConstraintFilename = "ranking_constraint_1558.txt"
 predictionRankFilename = "ranking_1558.txt"
 predictionRankOriginFilename = "ranking_origin_1558.txt"
@@ -36,7 +38,7 @@ CLF (collective link fusion)
 	# 	a. data split for 5 folds
 	# 	b. pu learning to build model_f by model and transition probability
 	# 	c. get formation probability 
-def clf(filename="clf_1558.txt"):
+def clf(filename="clf_1558_origin.txt"):
 	c=0.1
 	alpha=0.6
 	# 1.build formation probability (for social and anchor)
@@ -44,17 +46,18 @@ def clf(filename="clf_1558.txt"):
 	kf = cv.KFold(n=len(data), n_folds=5, shuffle=True)
 	for train_index, test_index in kf:
 		getFormProb(train_index, test_index, data)
-	print(data[:,-1])
 	links_anchor=list()
 	for inst in data:
 		if inst[-1]!=0:
 			links_anchor.append((inst[1],inst[2],inst[-1]))
-	# 這邊只有少量的data有些link沒有放進來，傳入data 
 
 	# 2. Use formation probability to random walk, alpha s=0.6, alpha a=0.6, c = 0.1
-	matrix, nodes, gids, tids = getMatrix(anchor_links, alpha)
+
+	matrix, nodes, gids, tids = getMatrix(links_anchor, alpha)
+	print("matrix over")
 	preds = list()
 	for gid in gids:
+		print(gid)
 		p = np.zeros(len(nodes))
 		p[nodes.index(gid)]=1
 		p_final = randomWalk(matrix,p,c)
@@ -66,10 +69,12 @@ def clf(filename="clf_1558.txt"):
 
 
 def getSampleData():
+	names = tuple(["label", "gid", "tid"]+["feature"+str(i) for i in range(1,51)])
+	formats = tuple(['i2', 'S26', 'S26']+[np.float]*50)
 	if os.path.isfile(outputPath+featureSvmSampleFilename):
-		data = np.loadtxt(outputPath+featureSvmSampleFilename, delimiter=",")
+		data = np.loadtxt(outputPath+featureSvmSampleFilename,  dtype={'names': names,'formats': formats}, delimiter=",")
 	else:
-		data_anchor = np.loadtxt(outputPath+featureSvmFilename, delimiter=",")
+		data = np.loadtxt(outputPath+featureSvmSampleFilename,  dtype={'names': names, 'formats':formats}, delimiter=",")
 		# data_social = np.loadtxt(outputPath+featureLinkFilename, delimiter=",")
 		# build anchor formation probability and its model
 		print("load finish")
@@ -86,6 +91,17 @@ def formatPred(preds):
 	with open("../intermediate/gt_stric") as fi:
 		for line in fi:
 			gid,tid = line.strip().split(",")
+	gids_pred = [pred[0] for pred in preds] 
+	total = list()
+	with open(predPath+predictionClfFilename, "w") as fo:
+		for gid in gids:
+			index = gids_pred.index(gid)
+			pred = preds[index]
+			t_index = tids.index(pred[1])
+			tmp = ["0"]*len(gids)
+			tmp[t_index]="1"
+
+
 
 # Description: use social and anchor links to produce matrix, by alpha=0.6
 def getMatrix(links_anchor,alpha):
@@ -151,7 +167,10 @@ def getSocialLinks(filename, uids):
 	links = list()
 	with open(filename, "r") as fi:
 		for line in fi:
-			sid, tid_str = line.strip().split(" ")
+			tmp = line.strip().split(" ")
+			if len(tmp)==1:
+				continue
+			sid, tid_str = tmp[0], tmp[1]
 			if sid not in uids:
 				continue
 			tids = tid_str.split(",")
@@ -161,31 +180,48 @@ def getSocialLinks(filename, uids):
 	return links
 
 def getFormProb(train_index, test_index, data):
-	valid_index = train_index[len(train_index)-len(test_index):]
-	train_index = train_index[:len(train_index)-len(test_index)]
+	# print(len(train_index))
+	size = train_index.size
+	# print(size)
+	valid_tmp_index = random.sample(range(size), len(test_index))
+	# print(len(valid_tmp_index))
+	train_tmp_index = list(set(range(len(train_index)))-set(valid_tmp_index))
+	tmp = np.zeros(size, np.bool)
+	tmp[valid_tmp_index]=1
+	valid_index = train_index[tmp]
+	tmp = np.zeros(size, np.bool)
+	tmp[train_tmp_index]=1
+	train_index = train_index[tmp]
+	# valid_index = random.sample(list(train_index[0]), len(test_index))
+	# valid_index = train_index[len(train_index)-len(test_index):]
+	# train_index = train_index[:len(train_index)-len(test_index)]
+	# train_index = list(set(list(train_index[0]))-set(valid_index))
 	data_train, data_valid, data_test = data[train_index], data[valid_index], data[test_index]
 	model = trainModel(data_train)
 	t_p = getValidTransProb(model, data_valid)
-	p_form_test = getTestFormProb(t_p, data_test[:,1:-1], model)
-	print(p_form_test)
+	p_form_test = getTestFormProb(t_p, data_test, model)
+	# print(p_form_test)
 	for index, t_index in enumerate(test_index):
 		data[t_index,-1] = p_form_test[index]
 
 
-def getTestFormProb(t_p, x, model):
-	p_test = model.predict_proba(x)[:,3:-1][:,1]
+def getTestFormProb(t_p, data, model):
+	# p_test = model.predict_proba(x)[:,3:-1][:,1]
+	p_test = [prob[0] for prob in model.predict_proba(data[:,3:-1])]
 	p_form_test = [p/t_p for p in p_test]
 	return p_form_test
 
 def getValidTransProb(model, data):
 	pos_index = np.where(data[:,0]==1)
-	p = model.predict_proba(data[:,3:-1])[:,1]
-	t_p = sum(p)/len(pos_index)
+	p = [prob[0] for prob in model.predict_proba(data[:,3:-1])]
+	t_p = sum(p)/len(p)
+	print("transition prob", t_p)
 	return t_p
 
 def trainModel(data):
 	model = svm.SVC(probability=True)
 	model.fit(data[:,3:-1], data[:,0])
+	return model
 
 '''
 Random Walk
@@ -233,7 +269,10 @@ def sampleData(data):
 	pos_index = np.ones(len(data), np.bool)
 	pos_index[neg_index] = 0
 	pos_data = data[pos_index]
-	neg_samples = random.sample(neg_data, len(data)-len(neg_inst))
+	neg_sample_index = np.zeros(len(data), np.bool)
+	print(neg_index[0])
+	neg_sample_index[random.sample((neg_index[0].tolist()), len(pos_data))] = 1
+	neg_data = data[neg_sample_index]
 	data = np.concatenate((pos_data, neg_data), axis=0)
 	return data
 
